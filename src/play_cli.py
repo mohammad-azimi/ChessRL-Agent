@@ -1,5 +1,7 @@
-import random
 import chess
+
+from agents.material_agent import MaterialAgent
+from agents.random_agent import RandomAgent
 
 
 def print_board(board: chess.Board) -> None:
@@ -10,15 +12,30 @@ def print_board(board: chess.Board) -> None:
     print()
 
 
-def choose_random_move(board: chess.Board) -> chess.Move:
-    legal_moves = list(board.legal_moves)
-    return random.choice(legal_moves)
+def select_agent():
+    print("Choose opponent:")
+    print("1 - Random Agent")
+    print("2 - Material Agent")
+
+    while True:
+        choice = input("Your choice: ").strip()
+
+        if choice == "1":
+            return RandomAgent(), "Random Agent"
+
+        if choice == "2":
+            return MaterialAgent(), "Material Agent"
+
+        print("Invalid choice. Please choose 1 or 2.")
 
 
 def main() -> None:
     board = chess.Board()
+    agent, agent_name = select_agent()
 
-    print("ChessRL - Human vs Random Agent")
+    print()
+    print("ChessRL - Human vs Agent")
+    print(f"Opponent: {agent_name}")
     print("You are White.")
     print("Write your moves in UCI format, for example: e2e4")
     print("Type 'quit' to exit.")
@@ -46,8 +63,8 @@ def main() -> None:
             board.push(move)
 
         else:
-            move = choose_random_move(board)
-            print(f"Agent move: {move}")
+            move = agent.choose_move(board)
+            print(f"{agent_name} move: {move}")
             board.push(move)
 
     print_board(board)
