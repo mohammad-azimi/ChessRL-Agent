@@ -1,5 +1,6 @@
 import chess
 
+from agents.minimax_agent import MinimaxAgent
 from agents.material_agent import MaterialAgent
 from agents.random_agent import RandomAgent
 
@@ -16,6 +17,7 @@ def select_agent():
     print("Choose opponent:")
     print("1 - Random Agent")
     print("2 - Material Agent")
+    print("3 - Minimax Agent")
 
     while True:
         choice = input("Your choice: ").strip()
@@ -26,7 +28,10 @@ def select_agent():
         if choice == "2":
             return MaterialAgent(), "Material Agent"
 
-        print("Invalid choice. Please choose 1 or 2.")
+        if choice == "3":
+            return MinimaxAgent(depth=2), "Minimax Agent"
+
+        print("Invalid choice. Please choose 1, 2, or 3.")
 
 
 def main() -> None:
