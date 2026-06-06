@@ -4,12 +4,15 @@ import chess
 
 from agents.material_agent import MaterialAgent
 from agents.minimax_agent import MinimaxAgent
+from agents.neural_policy_agent import NeuralPolicyAgent
 from agents.q_learning_agent import QLearningAgent
 from agents.random_agent import RandomAgent
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 Q_MODEL_PATH = PROJECT_ROOT / "models" / "q_learning_agent.json"
+POLICY_MODEL_PATH = PROJECT_ROOT / "models" / "policy_network.pt"
 
 
 def print_board(board: chess.Board) -> None:
@@ -20,12 +23,25 @@ def print_board(board: chess.Board) -> None:
     print()
 
 
+def get_legal_moves_text(board: chess.Board) -> str:
+    legal_moves = [move.uci() for move in board.legal_moves]
+    return ", ".join(legal_moves)
+
+
+def print_legal_moves(board: chess.Board) -> None:
+    print()
+    print("Legal moves:")
+    print(get_legal_moves_text(board))
+    print()
+
+
 def select_agent():
     print("Choose opponent:")
     print("1 - Random Agent")
     print("2 - Material Agent")
     print("3 - Minimax Agent")
     print("4 - Q-learning Agent")
+    print("5 - Neural Policy Agent")
 
     while True:
         choice = input("Your choice: ").strip()
@@ -53,7 +69,22 @@ def select_agent():
                 "Q-learning Agent",
             )
 
-        print("Invalid choice. Please choose 1, 2, 3, or 4.")
+        if choice == "5":
+            if not POLICY_MODEL_PATH.exists():
+                print()
+                print("Neural policy model was not found.")
+                print("Run these first:")
+                print("python src/training/generate_imitation_data.py --positions 1000 --expert-depth 2")
+                print("python src/training/train_policy_network.py --epochs 10")
+                print()
+                continue
+
+            return (
+                NeuralPolicyAgent(model_path=str(POLICY_MODEL_PATH)),
+                "Neural Policy Agent",
+            )
+
+        print("Invalid choice. Please choose 1, 2, 3, 4, or 5.")
 
 
 def select_human_color(agent_name: str):
@@ -79,6 +110,32 @@ def select_human_color(agent_name: str):
         print("Invalid choice. Please choose 1 or 2.")
 
 
+def read_human_move(board: chess.Board) -> chess.Move | None:
+    while True:
+        user_input = input("Your move: ").strip()
+
+        if user_input.lower() == "quit":
+            return None
+
+        if user_input.lower() == "moves":
+            print_legal_moves(board)
+            continue
+
+        try:
+            move = chess.Move.from_uci(user_input)
+        except ValueError:
+            print("Invalid format. Example move: e2e4")
+            print("Type 'moves' to see legal moves.")
+            continue
+
+        if move not in board.legal_moves:
+            print("Illegal move. Try again.")
+            print("Type 'moves' to see legal moves.")
+            continue
+
+        return move
+
+
 def main() -> None:
     board = chess.Board()
 
@@ -90,27 +147,18 @@ def main() -> None:
     print(f"Opponent: {agent_name}")
     print(f"You are {human_color_name}.")
     print("Write your moves in UCI format, for example: e2e4")
+    print("Type 'moves' to see legal moves.")
     print("Type 'quit' to exit.")
 
     while not board.is_game_over():
         print_board(board)
 
         if board.turn == human_color:
-            user_input = input("Your move: ").strip()
+            move = read_human_move(board)
 
-            if user_input.lower() == "quit":
+            if move is None:
                 print("Game stopped.")
                 return
-
-            try:
-                move = chess.Move.from_uci(user_input)
-            except ValueError:
-                print("Invalid format. Example move: e2e4")
-                continue
-
-            if move not in board.legal_moves:
-                print("Illegal move. Try again.")
-                continue
 
             board.push(move)
 
