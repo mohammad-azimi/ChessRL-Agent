@@ -34,7 +34,7 @@ class ChessEnvironment:
         reward = self.get_reward() if done else 0.0
 
         info = {
-            "result": self.board.result() if done else None,
+            "result": self.get_result() if done else None,
             "reason": self.get_game_over_reason() if done else None,
         }
 
@@ -43,12 +43,23 @@ class ChessEnvironment:
     def is_done(self) -> bool:
         return self.board.is_game_over() or self.board.ply() >= self.max_plies
 
+    def get_result(self) -> str:
+        if self.board.is_game_over():
+            return self.board.result()
+
+        if self.board.ply() >= self.max_plies:
+            return "1/2-1/2"
+
+        return "*"
+
     def get_reward(self) -> float:
-        if self.board.is_checkmate():
-            if self.board.result() == "1-0":
-                return 1.0
-            if self.board.result() == "0-1":
-                return -1.0
+        result = self.get_result()
+
+        if result == "1-0":
+            return 1.0
+
+        if result == "0-1":
+            return -1.0
 
         return 0.0
 
