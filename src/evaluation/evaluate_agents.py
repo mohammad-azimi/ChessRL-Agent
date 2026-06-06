@@ -13,13 +13,28 @@ sys.path.append(str(SRC_DIR))
 
 from agents.material_agent import MaterialAgent
 from agents.minimax_agent import MinimaxAgent
+from agents.q_learning_agent import QLearningAgent
 from agents.random_agent import RandomAgent
+
+
+Q_MODEL_PATH = PROJECT_ROOT / "models" / "q_learning_agent.json"
+
+
+def create_q_learning_agent():
+    if not Q_MODEL_PATH.exists():
+        raise FileNotFoundError(
+            "Q-learning model was not found. "
+            "Run: python src/training/train_q_learning.py --episodes 1000"
+        )
+
+    return QLearningAgent(q_table_path=str(Q_MODEL_PATH), epsilon=0.0)
 
 
 AGENT_FACTORIES = {
     "random": RandomAgent,
     "material": MaterialAgent,
     "minimax": lambda: MinimaxAgent(depth=2),
+    "q_learning": create_q_learning_agent,
 }
 
 
@@ -111,10 +126,12 @@ def main() -> None:
     random.seed(args.seed)
 
     matches = [
-        ("random", "minimax"),
-        ("minimax", "random"),
-        ("material", "minimax"),
-        ("minimax", "material"),
+        ("q_learning", "random"),
+        ("random", "q_learning"),
+        ("q_learning", "material"),
+        ("material", "q_learning"),
+        ("q_learning", "minimax"),
+        ("minimax", "q_learning"),
     ]
 
     all_results = []
@@ -132,7 +149,7 @@ def main() -> None:
     results_dir = PROJECT_ROOT / "results"
     results_dir.mkdir(exist_ok=True)
 
-    output_path = results_dir / "evaluation_summary.json"
+    output_path = results_dir / "q_learning_evaluation_summary.json"
 
     with output_path.open("w", encoding="utf-8") as file:
         json.dump(all_results, file, indent=2)
