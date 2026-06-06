@@ -13,11 +13,13 @@ sys.path.append(str(SRC_DIR))
 
 from agents.material_agent import MaterialAgent
 from agents.minimax_agent import MinimaxAgent
+from agents.neural_policy_agent import NeuralPolicyAgent
 from agents.q_learning_agent import QLearningAgent
 from agents.random_agent import RandomAgent
 
 
 Q_MODEL_PATH = PROJECT_ROOT / "models" / "q_learning_agent.json"
+POLICY_MODEL_PATH = PROJECT_ROOT / "models" / "policy_network.pt"
 
 
 def create_q_learning_agent():
@@ -30,11 +32,24 @@ def create_q_learning_agent():
     return QLearningAgent(q_table_path=str(Q_MODEL_PATH), epsilon=0.0)
 
 
+def create_neural_policy_agent():
+    if not POLICY_MODEL_PATH.exists():
+        raise FileNotFoundError(
+            "Neural policy model was not found. "
+            "Run these first:\n"
+            "python src/training/generate_imitation_data.py --positions 1000 --expert-depth 2\n"
+            "python src/training/train_policy_network.py --epochs 10"
+        )
+
+    return NeuralPolicyAgent(model_path=str(POLICY_MODEL_PATH))
+
+
 AGENT_FACTORIES = {
     "random": RandomAgent,
     "material": MaterialAgent,
     "minimax": lambda: MinimaxAgent(depth=2),
     "q_learning": create_q_learning_agent,
+    "neural_policy": create_neural_policy_agent,
 }
 
 
@@ -84,7 +99,12 @@ def evaluate_match(white_name: str, black_name: str, games: int, max_plies: int)
         white_agent = AGENT_FACTORIES[white_name]()
         black_agent = AGENT_FACTORIES[black_name]()
 
-        game_result = play_game(white_agent, black_agent, max_plies)
+        game_result = play_game(
+            white_agent=white_agent,
+            black_agent=black_agent,
+            max_plies=max_plies,
+        )
+
         result = game_result["result"]
 
         if result == "1-0":
@@ -119,19 +139,21 @@ def print_summary(match_summary: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--games", type=int, default=10)
-    parser.add_argument("--max-plies", type=int, default=160)
+    parser.add_argument("--max-plies", type=int, default=120)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     random.seed(args.seed)
 
     matches = [
-        ("q_learning", "random"),
-        ("random", "q_learning"),
-        ("q_learning", "material"),
-        ("material", "q_learning"),
-        ("q_learning", "minimax"),
-        ("minimax", "q_learning"),
+        ("neural_policy", "random"),
+        ("random", "neural_policy"),
+        ("neural_policy", "material"),
+        ("material", "neural_policy"),
+        ("neural_policy", "q_learning"),
+        ("q_learning", "neural_policy"),
+        ("neural_policy", "minimax"),
+        ("minimax", "neural_policy"),
     ]
 
     all_results = []
@@ -143,13 +165,14 @@ def main() -> None:
             games=args.games,
             max_plies=args.max_plies,
         )
+
         all_results.append(match_summary)
         print_summary(match_summary)
 
     results_dir = PROJECT_ROOT / "results"
     results_dir.mkdir(exist_ok=True)
 
-    output_path = results_dir / "q_learning_evaluation_summary.json"
+    output_path = results_dir / "neural_policy_evaluation_summary.json"
 
     with output_path.open("w", encoding="utf-8") as file:
         json.dump(all_results, file, indent=2)
