@@ -3,11 +3,11 @@ import chess
 
 
 PIECE_VALUES = {
-    chess.PAWN: 1,
-    chess.KNIGHT: 3,
-    chess.BISHOP: 3,
-    chess.ROOK: 5,
-    chess.QUEEN: 9,
+    chess.PAWN: 100,
+    chess.KNIGHT: 320,
+    chess.BISHOP: 330,
+    chess.ROOK: 500,
+    chess.QUEEN: 900,
     chess.KING: 0,
 }
 
@@ -17,14 +17,15 @@ class MaterialAgent:
         score = 0
 
         for piece_type, value in PIECE_VALUES.items():
-            white_pieces = len(board.pieces(piece_type, chess.WHITE))
-            black_pieces = len(board.pieces(piece_type, chess.BLACK))
-            score += value * (white_pieces - black_pieces)
+            white_count = len(board.pieces(piece_type, chess.WHITE))
+            black_count = len(board.pieces(piece_type, chess.BLACK))
+            score += value * (white_count - black_count)
 
         return score
 
     def choose_move(self, board: chess.Board) -> chess.Move:
         legal_moves = list(board.legal_moves)
+        original_turn = board.turn
 
         best_moves = []
         best_score = None
@@ -34,7 +35,7 @@ class MaterialAgent:
             score = self.evaluate_board(board)
             board.pop()
 
-            if board.turn == chess.WHITE:
+            if original_turn == chess.WHITE:
                 current_score = score
             else:
                 current_score = -score

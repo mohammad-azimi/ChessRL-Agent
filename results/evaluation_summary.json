@@ -1,0 +1,326 @@
+[
+  {
+    "white": "random",
+    "black": "minimax",
+    "games": 10,
+    "white_wins": 0,
+    "black_wins": 10,
+    "draws": 0,
+    "average_plies": 53.4,
+    "game_details": [
+      {
+        "game": 1,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 66,
+        "final_fen": "rnb2knr/ppp3pp/4p3/3p4/2q2b2/8/8/3K3r w - - 12 34"
+      },
+      {
+        "game": 2,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 70,
+        "final_fen": "1nb1k3/r2p4/1ppn2p1/4p1pr/8/p2p4/1q3b2/1K6 w - - 6 36"
+      },
+      {
+        "game": 3,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 62,
+        "final_fen": "r4bn1/3p2k1/1p4pp/p1N2p2/5q2/pb3K2/2r1n1P1/5R2 w - - 0 32"
+      },
+      {
+        "game": 4,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 40,
+        "final_fen": "1r1k1bnr/1p1bp2p/p2p1p2/q6p/3PP2P/6P1/P1p1NP2/n1BK1R2 w - - 0 21"
+      },
+      {
+        "game": 5,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 44,
+        "final_fen": "r1b1kbnr/1p2p1p1/p4pn1/P1p4p/4P3/1P5P/q2q2P1/3K1BNR w q - 2 23"
+      },
+      {
+        "game": 6,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 20,
+        "final_fen": "rnb2k1r/pppp1pp1/7p/3n4/Pb1N3q/B1P5/3PP1pP/RN1QKBR1 w Q - 0 11"
+      },
+      {
+        "game": 7,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 52,
+        "final_fen": "r3k1n1/p1p2p1r/1b2b1p1/1p5p/8/P1pq3P/2n5/4K1NR w q - 2 27"
+      },
+      {
+        "game": 8,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 46,
+        "final_fen": "r1b1k1nr/pp3ppp/n7/2pp2bP/7K/4qpP1/8/7R w kq - 1 24"
+      },
+      {
+        "game": 9,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 72,
+        "final_fen": "1nbq1bn1/4p1p1/r1p3k1/3p1p2/5P2/q5K1/1pr5/7q w - - 0 37"
+      },
+      {
+        "game": 10,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 62,
+        "final_fen": "rn2kb1r/4p3/3p1n1p/p2P1P2/p3Pp1P/1pP5/1P2q3/3bKR2 w - - 2 32"
+      }
+    ]
+  },
+  {
+    "white": "minimax",
+    "black": "random",
+    "games": 10,
+    "white_wins": 10,
+    "black_wins": 0,
+    "draws": 0,
+    "average_plies": 46.6,
+    "game_details": [
+      {
+        "game": 1,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 87,
+        "final_fen": "4Q1R1/5k2/8/1P3pP1/2K5/1P3B2/P1N3PP/2BR2NR b - - 6 44"
+      },
+      {
+        "game": 2,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 37,
+        "final_fen": "r1b5/pppp3R/2n3p1/7k/4R2P/P2P4/1PP1P1Pn/RNBQKBN1 b Q - 6 19"
+      },
+      {
+        "game": 3,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 9,
+        "final_fen": "rnbqkbnr/ppppp1p1/5pQp/8/2P5/3PP3/PP3PPP/RNB1KBNR b KQkq - 1 5"
+      },
+      {
+        "game": 4,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 83,
+        "final_fen": "5R1B/6Q1/7k/3P4/2p1P1P1/PP6/R1KPN3/1N5B b - - 1 42"
+      },
+      {
+        "game": 5,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 45,
+        "final_fen": "r7/np6/2k5/Q2Q1b2/P4p1P/5N2/1P1P2P1/RNB2BKR b - - 7 23"
+      },
+      {
+        "game": 6,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 43,
+        "final_fen": "rn6/p1p2p2/5k2/1P1P2Q1/2PP2p1/1P1P2P1/6BP/RNB2KNR b - - 1 22"
+      },
+      {
+        "game": 7,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 39,
+        "final_fen": "r1k3qr/2Q1b1p1/1p2pp2/p2p3p/P4B1P/1P5N/2P1BPP1/RN3K1R b - - 0 20"
+      },
+      {
+        "game": 8,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 29,
+        "final_fen": "3R2kr/6pp/7n/3pppNP/1r6/6P1/1PPPPP2/1NBQKB1R b K - 2 15"
+      },
+      {
+        "game": 9,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 53,
+        "final_fen": "r7/pb3p1P/2pP3R/1p6/1P1PB1k1/2N1P3/PPK3Q1/R1B5 b - - 2 27"
+      },
+      {
+        "game": 10,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 41,
+        "final_fen": "4Qk1r/6b1/5ppn/1B1Pp2p/3P3P/NPP3P1/P4P1R/R1B1K1N1 b Q - 7 21"
+      }
+    ]
+  },
+  {
+    "white": "material",
+    "black": "minimax",
+    "games": 10,
+    "white_wins": 0,
+    "black_wins": 9,
+    "draws": 1,
+    "average_plies": 71.8,
+    "game_details": [
+      {
+        "game": 1,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 94,
+        "final_fen": "r1b4r/8/pp1p1n1p/2P2k1p/1P4pb/Bn2K3/3q4/8 w - - 3 48"
+      },
+      {
+        "game": 2,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 62,
+        "final_fen": "r1r5/p6k/n1p3p1/P5bn/6b1/N2P2P1/2PqPP2/3K4 w - - 2 32"
+      },
+      {
+        "game": 3,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 60,
+        "final_fen": "6r1/1ppk1n2/4p3/3P4/1b2Pn2/2p2P1K/5q2/8 w - - 1 31"
+      },
+      {
+        "game": 4,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 50,
+        "final_fen": "1n3br1/r6p/p3k1n1/2p2p2/5P1P/3PPbP1/P3q3/4K3 w - - 2 26"
+      },
+      {
+        "game": 5,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 52,
+        "final_fen": "r1b2k1r/p1np4/2p1p1p1/p1P5/PP1PPqK1/N3b3/R7/8 w - - 1 27"
+      },
+      {
+        "game": 6,
+        "result": "1/2-1/2",
+        "reason": "max_plies_reached",
+        "plies": 160,
+        "final_fen": "r1b5/1n2n3/1K2p3/p5k1/3p4/1p5p/2r5/8 w - - 22 81"
+      },
+      {
+        "game": 7,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 24,
+        "final_fen": "2b1k2r/rppp1pp1/n6n/4p2p/6P1/3P1P2/PPPb3P/RK2qBNR w k - 2 13"
+      },
+      {
+        "game": 8,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 58,
+        "final_fen": "r7/p1p2p2/np1k4/8/8/b1r5/5q2/5K1n w - - 6 30"
+      },
+      {
+        "game": 9,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 66,
+        "final_fen": "r1br2k1/p2n1p1p/p4n2/K2p2p1/2p5/q7/8/8 w - - 2 34"
+      },
+      {
+        "game": 10,
+        "result": "0-1",
+        "reason": "CHECKMATE",
+        "plies": 92,
+        "final_fen": "3r4/p2p1n2/b4n2/2P4p/5b1p/6k1/8/r3K3 w - - 3 47"
+      }
+    ]
+  },
+  {
+    "white": "minimax",
+    "black": "material",
+    "games": 10,
+    "white_wins": 10,
+    "black_wins": 0,
+    "draws": 0,
+    "average_plies": 73.2,
+    "game_details": [
+      {
+        "game": 1,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 47,
+        "final_fen": "4rk2/2p4p/8/5RQ1/8/6PP/1PP5/2K2BN1 b - - 0 24"
+      },
+      {
+        "game": 2,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 125,
+        "final_fen": "4R2k/3R4/8/8/PP1K1P2/1N1B3P/7B/4N3 b - - 8 63"
+      },
+      {
+        "game": 3,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 103,
+        "final_fen": "1Q4k1/8/6B1/4B3/2N5/PR2P2P/2P3P1/3K2NR b - - 8 52"
+      },
+      {
+        "game": 4,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 99,
+        "final_fen": "5Q2/3k1R2/8/8/3NB1P1/B1P5/4P2P/1N1K4 b - - 14 50"
+      },
+      {
+        "game": 5,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 119,
+        "final_fen": "8/3R4/3Q2k1/PB6/6P1/P3P1BN/NK3P1P/7R b - - 10 60"
+      },
+      {
+        "game": 6,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 55,
+        "final_fen": "7k/8/6Q1/7R/5R2/3P2PN/4P1P1/1NBK1B2 b - - 0 28"
+      },
+      {
+        "game": 7,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 55,
+        "final_fen": "3rk3/pQ6/p2p3B/P7/2p4P/1PP5/6P1/4RKR1 b - - 1 28"
+      },
+      {
+        "game": 8,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 49,
+        "final_fen": "2k4N/8/B2Q4/p6p/8/4P1P1/PP1P1P1P/R1B1K1NR b KQ - 0 25"
+      },
+      {
+        "game": 9,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 15,
+        "final_fen": "r1bqkbn1/pp1pp3/n5Q1/2p2P2/5P1p/2N1P2B/PPPP3P/R1B1K1NR b KQq - 0 8"
+      },
+      {
+        "game": 10,
+        "result": "1-0",
+        "reason": "CHECKMATE",
+        "plies": 65,
+        "final_fen": "6k1/8/7b/3B1Q2/P5pp/3P4/1B2P1KP/2R3NR b - - 2 33"
+      }
+    ]
+  }
+]
