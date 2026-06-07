@@ -77,6 +77,48 @@ function setBusy(value, message = null) {
   }
 }
 
+function playTone(frequency, duration, volume = 0.08) {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioContext = new AudioContext();
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.frequency.value = frequency;
+    oscillator.type = "sine";
+
+    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioContext.currentTime + duration,
+    );
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+  } catch {
+    // Sound is optional.
+  }
+}
+
+function playMoveSound() {
+  playTone(420, 0.08);
+}
+
+function playCaptureSound() {
+  playTone(260, 0.1);
+  setTimeout(() => playTone(360, 0.08), 70);
+}
+
+function playGameOverSound() {
+  playTone(520, 0.12);
+  setTimeout(() => playTone(390, 0.12), 110);
+  setTimeout(() => playTone(260, 0.18), 220);
+}
+
 function squareName(fileIndex, rankIndex) {
   return files[fileIndex] + String(rankIndex + 1);
 }
@@ -108,7 +150,7 @@ function updateBoardOrientationText() {
 }
 
 function flipBoard() {
-  if (!currentState) {
+  if (!currentState || busy) {
     return;
   }
 
@@ -118,6 +160,7 @@ function flipBoard() {
   selectedSquare = null;
 
   renderBoard(currentState);
+  renderPlayerCards(currentState);
   updateBoardOrientationText();
 
   document.getElementById("message").textContent = "Board flipped.";
@@ -579,10 +622,16 @@ function renderStatus(state) {
 }
 
 function renderState(state) {
+  const wasGameOver = currentState && currentState.game_over;
   currentState = state;
+
   setDefaultBoardOrientation(state);
   renderBoard(state);
   renderStatus(state);
+
+  if (state.game_over && !wasGameOver) {
+    playGameOverSound();
+  }
 }
 
 async function loadState() {
@@ -624,6 +673,7 @@ async function startNewGame() {
 
     renderState(data.state);
     document.getElementById("message").textContent = data.message;
+    playMoveSound();
   } finally {
     setBusy(false);
   }
@@ -658,6 +708,7 @@ async function resetBoard() {
     renderState(data.state);
     document.getElementById("message").textContent =
       "Board reset. " + data.message;
+    playMoveSound();
   } finally {
     setBusy(false);
   }
@@ -687,12 +738,24 @@ async function undoMove() {
 
     renderState(data.state);
     document.getElementById("message").textContent = data.message;
+    playMoveSound();
   } finally {
     setBusy(false);
   }
 }
 
+function wasCaptureMove(moveUci) {
+  if (!currentState || !moveUci || moveUci.length < 4) {
+    return false;
+  }
+
+  const destinationSquare = moveUci.slice(2, 4);
+  return Boolean(currentState.pieces[destinationSquare]);
+}
+
 async function makeMove(move) {
+  const isCapture = wasCaptureMove(move);
+
   setBusy(true, "Thinking...");
 
   try {
@@ -728,6 +791,12 @@ async function makeMove(move) {
     }
 
     document.getElementById("message").textContent = message;
+
+    if (isCapture) {
+      playCaptureSound();
+    } else {
+      playMoveSound();
+    }
   } finally {
     setBusy(false);
   }
@@ -937,7 +1006,7 @@ async function copyTextToClipboard(text) {
 }
 
 async function copyFen() {
-  if (!currentState) {
+  if (!currentState || busy) {
     return;
   }
 
@@ -988,7 +1057,7 @@ function buildPgnFromHistory(state) {
 }
 
 async function copyPgn() {
-  if (!currentState) {
+  if (!currentState || busy) {
     return;
   }
 
@@ -998,6 +1067,49 @@ async function copyPgn() {
   document.getElementById("message").textContent = copied
     ? "PGN copied to clipboard."
     : "Could not copy PGN.";
+}
+
+function isTypingTarget(event) {
+  const tagName = event.target.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select";
+}
+
+function handleKeyboardShortcut(event) {
+  if (isTypingTarget(event)) {
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+
+  if (key === "n") {
+    event.preventDefault();
+    startNewGame();
+  }
+
+  if (key === "r") {
+    event.preventDefault();
+    resetBoard();
+  }
+
+  if (key === "u") {
+    event.preventDefault();
+    undoMove();
+  }
+
+  if (key === "f") {
+    event.preventDefault();
+    flipBoard();
+  }
+
+  if (key === "c") {
+    event.preventDefault();
+    copyFen();
+  }
+
+  if (key === "p") {
+    event.preventDefault();
+    copyPgn();
+  }
 }
 
 document
@@ -1021,5 +1133,7 @@ document.querySelectorAll(".difficulty-item").forEach((item) => {
     updateDifficultyVisuals(item.dataset.difficulty);
   });
 });
+
+document.addEventListener("keydown", handleKeyboardShortcut);
 
 loadState();
