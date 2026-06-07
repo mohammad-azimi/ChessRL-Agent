@@ -1,6 +1,7 @@
 let currentState = null;
 let selectedSquare = null;
 let busy = false;
+let dragSession = null;
 
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
@@ -120,6 +121,62 @@ function updateDifficultyVisuals(difficulty) {
   });
 }
 
+function createDragGhost(piece, clientX, clientY) {
+  const boardElement = document.getElementById("board");
+  const boardRect = boardElement.getBoundingClientRect();
+  const squareSize = boardRect.width / 8;
+
+  const ghost = document.createElement("div");
+  ghost.className = "piece";
+  ghost.classList.add(piece.color);
+  ghost.textContent = piece.unicode;
+
+  ghost.style.position = "fixed";
+  ghost.style.left = clientX + "px";
+  ghost.style.top = clientY + "px";
+  ghost.style.zIndex = "9999";
+  ghost.style.pointerEvents = "none";
+  ghost.style.fontSize = Math.round(squareSize * 0.82) + "px";
+  ghost.style.transform = "translate(-50%, -50%)";
+  ghost.style.opacity = "0.96";
+
+  document.body.appendChild(ghost);
+
+  return ghost;
+}
+
+function moveDragGhost(clientX, clientY) {
+  if (!dragSession || !dragSession.ghost) {
+    return;
+  }
+
+  dragSession.ghost.style.left = clientX + "px";
+  dragSession.ghost.style.top = clientY + "px";
+}
+
+function removeDragGhost() {
+  if (dragSession && dragSession.ghost) {
+    dragSession.ghost.remove();
+    dragSession.ghost = null;
+  }
+}
+
+function getSquareFromPoint(clientX, clientY) {
+  const element = document.elementFromPoint(clientX, clientY);
+
+  if (!element) {
+    return null;
+  }
+
+  const squareElement = element.closest(".square");
+
+  if (!squareElement) {
+    return null;
+  }
+
+  return squareElement.dataset.square || null;
+}
+
 function renderBoard(state) {
   const boardElement = document.getElementById("board");
   boardElement.innerHTML = "";
@@ -148,6 +205,14 @@ function renderBoard(state) {
       squareElement.classList.add("selected");
     }
 
+    if (
+      dragSession &&
+      dragSession.isDragging &&
+      dragSession.fromSquare === square
+    ) {
+      squareElement.classList.add("dragging");
+    }
+
     if (selectedSquare && isLegalDestination(selectedSquare, square)) {
       if (piece) {
         squareElement.classList.add("capture");
@@ -156,48 +221,8 @@ function renderBoard(state) {
       }
     }
 
-    const canDragPiece =
-      piece &&
-      piece.color === state.human_color &&
-      isHumanTurn() &&
-      !state.game_over &&
-      !busy;
-
-    squareElement.draggable = Boolean(canDragPiece);
-
-    squareElement.addEventListener("click", () => handleSquareClick(square));
-
-    squareElement.addEventListener("dragstart", (event) => {
-      if (!canDragPiece) {
-        event.preventDefault();
-        return;
-      }
-
-      selectedSquare = square;
-      event.dataTransfer.setData("text/plain", square);
-      squareElement.classList.add("dragging");
-      renderBoard(currentState);
-    });
-
-    squareElement.addEventListener("dragend", () => {
-      squareElement.classList.remove("dragging");
-    });
-
-    squareElement.addEventListener("dragover", (event) => {
-      event.preventDefault();
-    });
-
-    squareElement.addEventListener("drop", (event) => {
-      event.preventDefault();
-
-      const fromSquare = event.dataTransfer.getData("text/plain");
-      const toSquare = square;
-
-      if (!fromSquare) {
-        return;
-      }
-
-      attemptMove(fromSquare, toSquare);
+    squareElement.addEventListener("pointerdown", (event) => {
+      handlePointerDown(event, square);
     });
 
     if (shouldShowRankLabel(square, state.human_color)) {
@@ -473,7 +498,7 @@ function attemptMove(fromSquare, toSquare) {
   makeMove(legalMove);
 }
 
-function handleSquareClick(square) {
+function handleSquareTap(square) {
   if (busy) {
     return;
   }
@@ -514,6 +539,125 @@ function handleSquareClick(square) {
   }
 
   attemptMove(selectedSquare, square);
+}
+
+function handlePointerDown(event, square) {
+  if (busy || !currentState || currentState.game_over) {
+    return;
+  }
+
+  if (event.button !== undefined && event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const piece = currentState.pieces[square];
+  const canDragPiece =
+    piece && piece.color === currentState.human_color && isHumanTurn();
+
+  dragSession = {
+    startX: event.clientX,
+    startY: event.clientY,
+    currentX: event.clientX,
+    currentY: event.clientY,
+    fromSquare: square,
+    piece: piece,
+    canDragPiece: Boolean(canDragPiece),
+    isDragging: false,
+    ghost: null,
+  };
+
+  document.addEventListener("pointermove", handlePointerMove, {
+    passive: false,
+  });
+  document.addEventListener("pointerup", handlePointerUp, { passive: false });
+  document.addEventListener("pointercancel", handlePointerCancel, {
+    passive: false,
+  });
+}
+
+function handlePointerMove(event) {
+  if (!dragSession) {
+    return;
+  }
+
+  event.preventDefault();
+
+  dragSession.currentX = event.clientX;
+  dragSession.currentY = event.clientY;
+
+  const deltaX = event.clientX - dragSession.startX;
+  const deltaY = event.clientY - dragSession.startY;
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+  if (dragSession.canDragPiece && !dragSession.isDragging && distance > 7) {
+    dragSession.isDragging = true;
+    selectedSquare = dragSession.fromSquare;
+    renderBoard(currentState);
+    dragSession.ghost = createDragGhost(
+      dragSession.piece,
+      event.clientX,
+      event.clientY,
+    );
+  }
+
+  if (dragSession.isDragging) {
+    moveDragGhost(event.clientX, event.clientY);
+  }
+}
+
+function handlePointerUp(event) {
+  if (!dragSession) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const session = dragSession;
+  const wasDragging = session.isDragging;
+
+  cleanupPointerDrag();
+
+  if (wasDragging) {
+    const targetSquare = getSquareFromPoint(event.clientX, event.clientY);
+
+    selectedSquare = null;
+
+    if (!targetSquare) {
+      renderBoard(currentState);
+      return;
+    }
+
+    if (targetSquare === session.fromSquare) {
+      renderBoard(currentState);
+      return;
+    }
+
+    attemptMove(session.fromSquare, targetSquare);
+    return;
+  }
+
+  handleSquareTap(session.fromSquare);
+}
+
+function handlePointerCancel() {
+  cleanupPointerDrag();
+  selectedSquare = null;
+
+  if (currentState) {
+    renderBoard(currentState);
+  }
+}
+
+function cleanupPointerDrag() {
+  removeDragGhost();
+
+  document.removeEventListener("pointermove", handlePointerMove);
+  document.removeEventListener("pointerup", handlePointerUp);
+  document.removeEventListener("pointercancel", handlePointerCancel);
+
+  dragSession = null;
 }
 
 document
