@@ -278,4 +278,4 @@ python src/web_app.py
 
 ## License
 
-This project is intended for learning, portfolio demonstration, and experimentation with reinforcement learning and chess AI.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
