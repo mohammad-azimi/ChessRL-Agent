@@ -59,86 +59,119 @@
             </section>
 
             <aside class="right-panel">
-                <div class="card">
-                    <h2>New Game</h2>
+                <div class="panel-tabs">
+                    <input type="radio" name="rightPanelTab" id="tabGame" checked>
+                    <input type="radio" name="rightPanelTab" id="tabMoves">
+                    <input type="radio" name="rightPanelTab" id="tabHelp">
 
-                    <div class="controls">
-                        <div>
-                            <label for="difficultySelect">Difficulty</label>
-                            <select id="difficultySelect">
-                                <option value="easy">Easy</option>
-                                <option value="medium">Medium</option>
-                                <option value="hard">Hard</option>
-                                <option value="strong">Strong</option>
-                                <option value="expert" selected>Expert</option>
-                            </select>
-                        </div>
-
-                        <div class="difficulty-card">
-                            <div class="difficulty-item" data-difficulty="easy">Easy</div>
-                            <div class="difficulty-item" data-difficulty="medium">Medium</div>
-                            <div class="difficulty-item" data-difficulty="hard">Hard</div>
-                            <div class="difficulty-item" data-difficulty="strong">Strong</div>
-                            <div class="difficulty-item" data-difficulty="expert">Expert</div>
-                        </div>
-
-                        <div>
-                            <label for="colorSelect">Your Color</label>
-                            <select id="colorSelect">
-                                <option value="white">White</option>
-                                <option value="black" selected>Black</option>
-                            </select>
-                        </div>
-
-                        <button id="newGameButton">Start New Game</button>
-                        <button class="secondary" id="undoButton">Undo Last Move</button>
-                        <button class="secondary" id="resetButton">Reset Board</button>
-                        <button class="secondary" id="flipBoardButton">Flip Board</button>
-                        <button class="secondary" id="copyFenButton">Copy FEN</button>
-                        <button class="secondary" id="copyPgnButton">Copy PGN</button>
+                    <div class="tab-buttons">
+                        <label for="tabGame" class="tab-button game-tab-button">Game</label>
+                        <label for="tabMoves" class="tab-button moves-tab-button">Moves</label>
+                        <label for="tabHelp" class="tab-button help-tab-button">Help</label>
                     </div>
 
-                    <div class="message" id="message">Choose a difficulty and start a game.</div>
-                </div>
+                    <div class="tab-content">
+                        <div class="tab-panel" id="gamePanel">
+                            <div class="card compact-card">
+                                <h2>New Game</h2>
 
-                <div class="card">
-                    <h2>Status</h2>
-                    <div class="status">
-                        <div>Difficulty: <strong id="difficultyText">-</strong></div>
-                        <div>Engine: <strong id="engineText">-</strong></div>
-                        <div>Turn: <strong id="turnText">-</strong></div>
-                        <div>You: <strong id="humanColorText">-</strong></div>
-                        <div>Board: <strong id="boardOrientationText">-</strong></div>
-                        <div>Result: <strong id="resultText">-</strong></div>
-                        <div>Reason: <strong id="reasonText">-</strong></div>
+                                <div class="controls">
+                                    <div>
+                                        <label for="difficultySelect">Difficulty</label>
+                                        <select id="difficultySelect">
+                                            <option value="easy">Easy</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="hard">Hard</option>
+                                            <option value="strong">Strong</option>
+                                            <option value="expert" selected>Expert</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="difficulty-card">
+                                        <div class="difficulty-item" data-difficulty="easy">Easy</div>
+                                        <div class="difficulty-item" data-difficulty="medium">Medium</div>
+                                        <div class="difficulty-item" data-difficulty="hard">Hard</div>
+                                        <div class="difficulty-item" data-difficulty="strong">Strong</div>
+                                        <div class="difficulty-item" data-difficulty="expert">Expert</div>
+                                    </div>
+
+                                    <div>
+                                        <label for="colorSelect">Your Color</label>
+                                        <select id="colorSelect">
+                                            <option value="white">White</option>
+                                            <option value="black" selected>Black</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="button-grid">
+                                        <button id="newGameButton">Start</button>
+                                        <button class="secondary" id="undoButton">Undo</button>
+                                        <button class="secondary" id="resetButton">Reset</button>
+                                        <button class="secondary" id="flipBoardButton">Flip</button>
+                                        <button class="secondary" id="copyFenButton">Copy FEN</button>
+                                        <button class="secondary" id="copyPgnButton">Copy PGN</button>
+                                    </div>
+                                </div>
+
+                                <div class="message" id="message">Choose a difficulty and start a game.</div>
+                            </div>
+
+                            <div class="card compact-card">
+                                <h2>Status</h2>
+                                <div class="status">
+                                    <div>Difficulty: <strong id="difficultyText">-</strong></div>
+                                    <div>Engine: <strong id="engineText">-</strong></div>
+                                    <div>Turn: <strong id="turnText">-</strong></div>
+                                    <div>You: <strong id="humanColorText">-</strong></div>
+                                    <div>Board: <strong id="boardOrientationText">-</strong></div>
+                                    <div>Result: <strong id="resultText">-</strong></div>
+                                    <div>Reason: <strong id="reasonText">-</strong></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-panel" id="movesPanel">
+                            <div class="card compact-card">
+                                <h2>Move History</h2>
+                                <div class="history tall-history" id="moveHistory"></div>
+                            </div>
+
+                            <div class="card compact-card">
+                                <h2>Legal Moves</h2>
+                                <div class="moves tall-moves" id="legalMoves"></div>
+                            </div>
+                        </div>
+
+                        <div class="tab-panel" id="helpPanel">
+                            <div class="card compact-card">
+                                <h2>Keyboard Shortcuts</h2>
+
+                                <div class="shortcuts-grid">
+                                    <div class="shortcut-item"><kbd>N</kbd><span>New Game</span></div>
+                                    <div class="shortcut-item"><kbd>R</kbd><span>Reset Board</span></div>
+                                    <div class="shortcut-item"><kbd>U</kbd><span>Undo Move</span></div>
+                                    <div class="shortcut-item"><kbd>F</kbd><span>Flip Board</span></div>
+                                    <div class="shortcut-item"><kbd>C</kbd><span>Copy FEN</span></div>
+                                    <div class="shortcut-item"><kbd>P</kbd><span>Copy PGN</span></div>
+                                </div>
+
+                                <p class="hint-text">
+                                    Shortcuts use physical keyboard keys, so they still work with Persian or Russian keyboard layout.
+                                </p>
+                            </div>
+
+                            <div class="card compact-card">
+                                <h2>How to Play</h2>
+
+                                <div class="guide-list">
+                                    <div>Select a piece, then select a legal destination square.</div>
+                                    <div>You can also drag a piece and drop it on the target square.</div>
+                                    <div>Captured pieces and material advantage are shown beside each player card.</div>
+                                    <div>Use Expert mode to play against the strongest neural-guided agent.</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="card">
-                    <h2>Keyboard Shortcuts</h2>
-
-                    <div class="shortcuts-grid">
-                        <div class="shortcut-item"><kbd>N</kbd><span>New Game</span></div>
-                        <div class="shortcut-item"><kbd>R</kbd><span>Reset Board</span></div>
-                        <div class="shortcut-item"><kbd>U</kbd><span>Undo Move</span></div>
-                        <div class="shortcut-item"><kbd>F</kbd><span>Flip Board</span></div>
-                        <div class="shortcut-item"><kbd>C</kbd><span>Copy FEN</span></div>
-                        <div class="shortcut-item"><kbd>P</kbd><span>Copy PGN</span></div>
-                    </div>
-
-                    <p class="hint-text">
-                        Shortcuts use physical keyboard keys, so they still work with Persian or Russian keyboard layout.
-                    </p>
-                </div>
-
-                <div class="card">
-                    <h2>Move History</h2>
-                    <div class="history" id="moveHistory"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Legal Moves</h2>
-                    <div class="moves" id="legalMoves"></div>
                 </div>
             </aside>
         </div>
