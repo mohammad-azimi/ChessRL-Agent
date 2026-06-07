@@ -61,6 +61,22 @@ def create_neural_guided_agent():
     )
 
 
+def create_neural_guided_strong_agent():
+    if not POLICY_MODEL_PATH.exists():
+        raise FileNotFoundError(
+            "Neural policy model was not found. "
+            "Run these first:\n"
+            "python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2\n"
+            "python src/training/train_policy_network.py --epochs 15"
+        )
+
+    return NeuralGuidedAgent(
+        model_path=str(POLICY_MODEL_PATH),
+        top_k=12,
+        search_depth=3,
+    )
+
+
 AGENT_FACTORIES = {
     "random": RandomAgent,
     "material": MaterialAgent,
@@ -68,6 +84,7 @@ AGENT_FACTORIES = {
     "q_learning": create_q_learning_agent,
     "neural_policy": create_neural_policy_agent,
     "neural_guided": create_neural_guided_agent,
+    "neural_guided_strong": create_neural_guided_strong_agent,
 }
 
 
@@ -164,16 +181,18 @@ def main() -> None:
     random.seed(args.seed)
 
     matches = [
-        ("neural_guided", "random"),
-        ("random", "neural_guided"),
-        ("neural_guided", "material"),
-        ("material", "neural_guided"),
-        ("neural_guided", "q_learning"),
-        ("q_learning", "neural_guided"),
-        ("neural_guided", "neural_policy"),
-        ("neural_policy", "neural_guided"),
-        ("neural_guided", "minimax"),
-        ("minimax", "neural_guided"),
+        ("neural_guided_strong", "random"),
+        ("random", "neural_guided_strong"),
+        ("neural_guided_strong", "material"),
+        ("material", "neural_guided_strong"),
+        ("neural_guided_strong", "q_learning"),
+        ("q_learning", "neural_guided_strong"),
+        ("neural_guided_strong", "neural_policy"),
+        ("neural_policy", "neural_guided_strong"),
+        ("neural_guided_strong", "neural_guided"),
+        ("neural_guided", "neural_guided_strong"),
+        ("neural_guided_strong", "minimax"),
+        ("minimax", "neural_guided_strong"),
     ]
 
     all_results = []
@@ -192,7 +211,7 @@ def main() -> None:
     results_dir = PROJECT_ROOT / "results"
     results_dir.mkdir(exist_ok=True)
 
-    output_path = results_dir / "neural_guided_evaluation_summary.json"
+    output_path = results_dir / "neural_guided_strong_evaluation_summary.json"
 
     with output_path.open("w", encoding="utf-8") as file:
         json.dump(all_results, file, indent=2)

@@ -36,6 +36,23 @@ def print_legal_moves(board: chess.Board) -> None:
     print()
 
 
+def create_neural_guided_agent(top_k: int, search_depth: int) -> NeuralGuidedAgent | None:
+    if not POLICY_MODEL_PATH.exists():
+        print()
+        print("Neural policy model was not found.")
+        print("Run these first:")
+        print("python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2")
+        print("python src/training/train_policy_network.py --epochs 15")
+        print()
+        return None
+
+    return NeuralGuidedAgent(
+        model_path=str(POLICY_MODEL_PATH),
+        top_k=top_k,
+        search_depth=search_depth,
+    )
+
+
 def select_agent():
     print("Choose opponent:")
     print("1 - Random Agent")
@@ -44,6 +61,7 @@ def select_agent():
     print("4 - Q-learning Agent")
     print("5 - Neural Policy Agent")
     print("6 - Neural Guided Agent")
+    print("7 - Neural Guided Strong Agent")
 
     while True:
         choice = input("Your choice: ").strip()
@@ -87,25 +105,22 @@ def select_agent():
             )
 
         if choice == "6":
-            if not POLICY_MODEL_PATH.exists():
-                print()
-                print("Neural policy model was not found.")
-                print("Run these first:")
-                print("python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2")
-                print("python src/training/train_policy_network.py --epochs 15")
-                print()
+            agent = create_neural_guided_agent(top_k=8, search_depth=2)
+
+            if agent is None:
                 continue
 
-            return (
-                NeuralGuidedAgent(
-                    model_path=str(POLICY_MODEL_PATH),
-                    top_k=8,
-                    search_depth=2,
-                ),
-                "Neural Guided Agent",
-            )
+            return agent, "Neural Guided Agent"
 
-        print("Invalid choice. Please choose 1, 2, 3, 4, 5, or 6.")
+        if choice == "7":
+            agent = create_neural_guided_agent(top_k=12, search_depth=3)
+
+            if agent is None:
+                continue
+
+            return agent, "Neural Guided Strong Agent"
+
+        print("Invalid choice. Please choose 1, 2, 3, 4, 5, 6, or 7.")
 
 
 def select_human_color(agent_name: str):
@@ -118,6 +133,10 @@ def select_human_color(agent_name: str):
         print()
         print("Recommendation: choose Black.")
         print("The current Q-learning model was trained mainly as White.")
+
+    if agent_name == "Neural Guided Strong Agent":
+        print()
+        print("Strong mode may think slower because it searches deeper.")
 
     while True:
         choice = input("Your choice: ").strip()
