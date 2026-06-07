@@ -88,8 +88,33 @@ AGENT_FACTORIES = {
 }
 
 
-def play_game(white_agent, black_agent, max_plies: int) -> dict:
+def apply_random_opening(board: chess.Board, opening_plies: int) -> list[str]:
+    opening_moves = []
+
+    for _ in range(opening_plies):
+        if board.is_game_over():
+            break
+
+        legal_moves = list(board.legal_moves)
+
+        if not legal_moves:
+            break
+
+        move = random.choice(legal_moves)
+        board.push(move)
+        opening_moves.append(move.uci())
+
+    return opening_moves
+
+
+def play_game(
+    white_agent,
+    black_agent,
+    max_plies: int,
+    opening_plies: int,
+) -> dict:
     board = chess.Board()
+    opening_moves = apply_random_opening(board, opening_plies)
 
     while not board.is_game_over() and board.ply() < max_plies:
         agent = white_agent if board.turn == chess.WHITE else black_agent
@@ -112,15 +137,24 @@ def play_game(white_agent, black_agent, max_plies: int) -> dict:
         "result": result,
         "reason": reason,
         "plies": board.ply(),
+        "opening_moves": opening_moves,
         "final_fen": board.fen(),
     }
 
 
-def evaluate_match(white_name: str, black_name: str, games: int, max_plies: int) -> dict:
+def evaluate_match(
+    white_name: str,
+    black_name: str,
+    games: int,
+    max_plies: int,
+    opening_plies: int,
+) -> dict:
     summary = {
         "white": white_name,
         "black": black_name,
         "games": games,
+        "max_plies": max_plies,
+        "opening_plies": opening_plies,
         "white_wins": 0,
         "black_wins": 0,
         "draws": 0,
@@ -138,6 +172,7 @@ def evaluate_match(white_name: str, black_name: str, games: int, max_plies: int)
             white_agent=white_agent,
             black_agent=black_agent,
             max_plies=max_plies,
+            opening_plies=opening_plies,
         )
 
         result = game_result["result"]
@@ -165,6 +200,7 @@ def print_summary(match_summary: dict) -> None:
     print(f"{match_summary['white']} vs {match_summary['black']}")
     print("-" * 40)
     print(f"Games: {match_summary['games']}")
+    print(f"Opening plies: {match_summary['opening_plies']}")
     print(f"White wins: {match_summary['white_wins']}")
     print(f"Black wins: {match_summary['black_wins']}")
     print(f"Draws: {match_summary['draws']}")
@@ -175,6 +211,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--games", type=int, default=10)
     parser.add_argument("--max-plies", type=int, default=120)
+    parser.add_argument("--opening-plies", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -203,6 +240,7 @@ def main() -> None:
             black_name=black_name,
             games=args.games,
             max_plies=args.max_plies,
+            opening_plies=args.opening_plies,
         )
 
         all_results.append(match_summary)
