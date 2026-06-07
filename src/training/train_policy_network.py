@@ -14,7 +14,7 @@ SRC_DIR = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(SRC_DIR))
 
-from neural.action_encoder import move_to_action
+from neural.action_encoder import ACTION_SPACE_SIZE, get_legal_action_indices, move_to_action
 from neural.board_encoder import encode_board
 from neural.policy_network import ChessPolicyNetwork
 
@@ -40,12 +40,34 @@ class ImitationChessDataset(Dataset):
         encoded_board = torch.tensor(encode_board(board), dtype=torch.float32)
         target_action = torch.tensor(move_to_action(move), dtype=torch.long)
 
-        return encoded_board, target_action
+        legal_mask = torch.zeros(ACTION_SPACE_SIZE, dtype=torch.bool)
+        legal_actions = get_legal_action_indices(board)
+        legal_mask[legal_actions] = True
+
+        return encoded_board, target_action, legal_mask
 
 
-def calculate_accuracy(logits: torch.Tensor, targets: torch.Tensor) -> float:
-    predictions = torch.argmax(logits, dim=1)
+def mask_illegal_logits(logits: torch.Tensor, legal_mask: torch.Tensor) -> torch.Tensor:
+    return logits.masked_fill(~legal_mask, -1e9)
+
+
+def calculate_top1_accuracy(masked_logits: torch.Tensor, targets: torch.Tensor) -> float:
+    predictions = torch.argmax(masked_logits, dim=1)
     correct = (predictions == targets).sum().item()
+    total = targets.size(0)
+
+    return correct / total if total > 0 else 0.0
+
+
+def calculate_topk_accuracy(
+    masked_logits: torch.Tensor,
+    targets: torch.Tensor,
+    k: int = 3,
+) -> float:
+    topk_predictions = torch.topk(masked_logits, k=k, dim=1).indices
+    targets = targets.unsqueeze(1)
+
+    correct = (topk_predictions == targets).any(dim=1).sum().item()
     total = targets.size(0)
 
     return correct / total if total > 0 else 0.0
@@ -57,32 +79,38 @@ def train_one_epoch(
     optimizer: torch.optim.Optimizer,
     loss_function: nn.Module,
     device: torch.device,
-) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     model.train()
 
     total_loss = 0.0
-    total_accuracy = 0.0
+    total_top1_accuracy = 0.0
+    total_top3_accuracy = 0.0
     batches = 0
 
-    for boards, target_actions in dataloader:
+    for boards, target_actions, legal_masks in dataloader:
         boards = boards.to(device)
         target_actions = target_actions.to(device)
+        legal_masks = legal_masks.to(device)
 
         logits = model(boards)
-        loss = loss_function(logits, target_actions)
+        masked_logits = mask_illegal_logits(logits, legal_masks)
+
+        loss = loss_function(masked_logits, target_actions)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         total_loss += loss.item()
-        total_accuracy += calculate_accuracy(logits, target_actions)
+        total_top1_accuracy += calculate_top1_accuracy(masked_logits, target_actions)
+        total_top3_accuracy += calculate_topk_accuracy(masked_logits, target_actions, k=3)
         batches += 1
 
     average_loss = total_loss / batches if batches > 0 else 0.0
-    average_accuracy = total_accuracy / batches if batches > 0 else 0.0
+    average_top1_accuracy = total_top1_accuracy / batches if batches > 0 else 0.0
+    average_top3_accuracy = total_top3_accuracy / batches if batches > 0 else 0.0
 
-    return average_loss, average_accuracy
+    return average_loss, average_top1_accuracy, average_top3_accuracy
 
 
 def evaluate_model(
@@ -90,29 +118,35 @@ def evaluate_model(
     dataloader: DataLoader,
     loss_function: nn.Module,
     device: torch.device,
-) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     model.eval()
 
     total_loss = 0.0
-    total_accuracy = 0.0
+    total_top1_accuracy = 0.0
+    total_top3_accuracy = 0.0
     batches = 0
 
     with torch.no_grad():
-        for boards, target_actions in dataloader:
+        for boards, target_actions, legal_masks in dataloader:
             boards = boards.to(device)
             target_actions = target_actions.to(device)
+            legal_masks = legal_masks.to(device)
 
             logits = model(boards)
-            loss = loss_function(logits, target_actions)
+            masked_logits = mask_illegal_logits(logits, legal_masks)
+
+            loss = loss_function(masked_logits, target_actions)
 
             total_loss += loss.item()
-            total_accuracy += calculate_accuracy(logits, target_actions)
+            total_top1_accuracy += calculate_top1_accuracy(masked_logits, target_actions)
+            total_top3_accuracy += calculate_topk_accuracy(masked_logits, target_actions, k=3)
             batches += 1
 
     average_loss = total_loss / batches if batches > 0 else 0.0
-    average_accuracy = total_accuracy / batches if batches > 0 else 0.0
+    average_top1_accuracy = total_top1_accuracy / batches if batches > 0 else 0.0
+    average_top3_accuracy = total_top3_accuracy / batches if batches > 0 else 0.0
 
-    return average_loss, average_accuracy
+    return average_loss, average_top1_accuracy, average_top3_accuracy
 
 
 def train_model(
@@ -157,7 +191,7 @@ def train_model(
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=1e-4,
+        weight_decay=1e-3,
     )
 
     loss_function = nn.CrossEntropyLoss()
@@ -165,13 +199,15 @@ def train_model(
     print(f"Training examples: {train_size}")
     print(f"Validation examples: {validation_size}")
     print(f"Device: {device}")
+    print("Training uses legal-action masking.")
     print()
 
+    best_validation_top1 = -1.0
     best_validation_loss = float("inf")
     best_state = None
 
     for epoch in range(1, epochs + 1):
-        train_loss, train_accuracy = train_one_epoch(
+        train_loss, train_top1, train_top3 = train_one_epoch(
             model=model,
             dataloader=train_loader,
             optimizer=optimizer,
@@ -179,14 +215,21 @@ def train_model(
             device=device,
         )
 
-        validation_loss, validation_accuracy = evaluate_model(
+        validation_loss, validation_top1, validation_top3 = evaluate_model(
             model=model,
             dataloader=validation_loader,
             loss_function=loss_function,
             device=device,
         )
 
-        if validation_loss < best_validation_loss:
+        is_better_accuracy = validation_top1 > best_validation_top1
+        is_same_accuracy_better_loss = (
+            validation_top1 == best_validation_top1
+            and validation_loss < best_validation_loss
+        )
+
+        if is_better_accuracy or is_same_accuracy_better_loss:
+            best_validation_top1 = validation_top1
             best_validation_loss = validation_loss
             best_state = {
                 key: value.cpu().clone()
@@ -196,9 +239,11 @@ def train_model(
         print(
             f"Epoch {epoch}: "
             f"train_loss={train_loss:.4f}, "
-            f"train_accuracy={train_accuracy:.4f}, "
+            f"train_top1={train_top1:.4f}, "
+            f"train_top3={train_top3:.4f}, "
             f"val_loss={validation_loss:.4f}, "
-            f"val_accuracy={validation_accuracy:.4f}"
+            f"val_top1={validation_top1:.4f}, "
+            f"val_top3={validation_top3:.4f}"
         )
 
     if best_state is not None:
@@ -214,9 +259,9 @@ def main() -> None:
         type=str,
         default=str(PROJECT_ROOT / "data" / "imitation_positions.jsonl"),
     )
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--learning-rate", type=float, default=0.0005)
+    parser.add_argument("--learning-rate", type=float, default=0.0003)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -225,7 +270,7 @@ def main() -> None:
     if not data_path.exists():
         raise FileNotFoundError(
             "Imitation data was not found. Run this first: "
-            "python src/training/generate_imitation_data.py --positions 5000 --expert-depth 2"
+            "python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2"
         )
 
     model = train_model(
