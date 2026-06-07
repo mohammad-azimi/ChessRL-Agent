@@ -22,6 +22,7 @@ board = chess.Board()
 human_color = chess.WHITE
 agent = None
 agent_label = "Neural Guided Strong Agent"
+difficulty_label = "Expert"
 move_history = []
 
 
@@ -82,7 +83,7 @@ HTML_PAGE = """
         }
 
         .brand {
-            font-size: 19px;
+            font-size: 18px;
             font-weight: 900;
             letter-spacing: -0.04em;
             line-height: 1;
@@ -378,6 +379,28 @@ HTML_PAGE = """
             background: rgba(79, 124, 255, 0.22);
         }
 
+        .difficulty-card {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .difficulty-item {
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 9px 6px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .difficulty-item.active {
+            color: #ffffff;
+            border-color: rgba(129, 182, 76, 0.55);
+            background: rgba(129, 182, 76, 0.22);
+        }
+
         .status {
             display: grid;
             gap: 9px;
@@ -480,6 +503,10 @@ HTML_PAGE = """
             .piece {
                 font-size: clamp(34px, 11vw, 62px);
             }
+
+            .difficulty-card {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -515,16 +542,22 @@ HTML_PAGE = """
                 <h2>New Game</h2>
                 <div class="controls">
                     <div>
-                        <label for="agentSelect">Agent</label>
-                        <select id="agentSelect">
-                            <option value="neural_guided_strong" selected>Neural Guided Strong Agent</option>
-                            <option value="neural_guided">Neural Guided Agent</option>
-                            <option value="neural_policy">Neural Policy Agent</option>
-                            <option value="minimax">Minimax Agent</option>
-                            <option value="material">Material Agent</option>
-                            <option value="q_learning">Q-learning Agent</option>
-                            <option value="random">Random Agent</option>
+                        <label for="difficultySelect">Difficulty</label>
+                        <select id="difficultySelect">
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                            <option value="strong">Strong</option>
+                            <option value="expert" selected>Expert</option>
                         </select>
+                    </div>
+
+                    <div class="difficulty-card">
+                        <div class="difficulty-item" data-difficulty="easy">Easy</div>
+                        <div class="difficulty-item" data-difficulty="medium">Medium</div>
+                        <div class="difficulty-item" data-difficulty="hard">Hard</div>
+                        <div class="difficulty-item" data-difficulty="strong">Strong</div>
+                        <div class="difficulty-item" data-difficulty="expert">Expert</div>
                     </div>
 
                     <div>
@@ -539,12 +572,14 @@ HTML_PAGE = """
                     <button class="secondary" id="undoButton" onclick="undoMove()">Undo Last Move</button>
                     <button class="secondary" id="refreshButton" onclick="refreshBoard()">Refresh Board</button>
                 </div>
-                <div class="message" id="message">Choose an agent and start a game.</div>
+                <div class="message" id="message">Choose a difficulty and start a game.</div>
             </div>
 
             <div class="card">
                 <h2>Status</h2>
                 <div class="status">
+                    <div>Difficulty: <strong id="difficultyText">-</strong></div>
+                    <div>Engine: <strong id="engineText">-</strong></div>
                     <div>Turn: <strong id="turnText">-</strong></div>
                     <div>You: <strong id="humanColorText">-</strong></div>
                     <div>Result: <strong id="resultText">-</strong></div>
@@ -570,6 +605,14 @@ HTML_PAGE = """
         let busy = false;
 
         const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+        const difficultyLabels = {
+            easy: "Easy",
+            medium: "Medium",
+            hard: "Hard",
+            strong: "Strong",
+            expert: "Expert"
+        };
 
         function setBusy(value, message = null) {
             busy = value;
@@ -676,6 +719,12 @@ HTML_PAGE = """
             return promotionMove || null;
         }
 
+        function updateDifficultyVisuals(difficulty) {
+            document.querySelectorAll(".difficulty-item").forEach((item) => {
+                item.classList.toggle("active", item.dataset.difficulty === difficulty);
+            });
+        }
+
         function renderBoard(state) {
             const boardElement = document.getElementById("board");
             boardElement.innerHTML = "";
@@ -779,7 +828,9 @@ HTML_PAGE = """
         }
 
         function renderStatus(state) {
-            document.getElementById("agentBadge").textContent = state.agent_label;
+            document.getElementById("agentBadge").textContent = state.difficulty_label + " • " + state.agent_label;
+            document.getElementById("difficultyText").textContent = state.difficulty_label;
+            document.getElementById("engineText").textContent = state.agent_label;
             document.getElementById("turnText").textContent = state.turn;
             document.getElementById("humanColorText").textContent = state.human_color;
             document.getElementById("resultText").textContent = state.result || "-";
@@ -795,6 +846,8 @@ HTML_PAGE = """
                 legalMovesElement.appendChild(moveElement);
             }
 
+            document.getElementById("difficultySelect").value = state.difficulty_key;
+            updateDifficultyVisuals(state.difficulty_key);
             renderMoveHistory(state);
 
             if (state.game_over) {
@@ -838,7 +891,7 @@ HTML_PAGE = """
             selectedSquare = null;
             setBusy(true, "Starting a new game...");
 
-            const agentType = document.getElementById("agentSelect").value;
+            const difficulty = document.getElementById("difficultySelect").value;
             const color = document.getElementById("colorSelect").value;
 
             try {
@@ -846,7 +899,7 @@ HTML_PAGE = """
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({
-                        agent_type: agentType,
+                        difficulty: difficulty,
                         human_color: color
                     })
                 });
@@ -984,11 +1037,46 @@ HTML_PAGE = """
             makeMove(legalMove);
         }
 
+        document.getElementById("difficultySelect").addEventListener("change", (event) => {
+            updateDifficultyVisuals(event.target.value);
+        });
+
+        document.querySelectorAll(".difficulty-item").forEach((item) => {
+            item.addEventListener("click", () => {
+                document.getElementById("difficultySelect").value = item.dataset.difficulty;
+                updateDifficultyVisuals(item.dataset.difficulty);
+            });
+        });
+
         loadState();
     </script>
 </body>
 </html>
 """
+
+
+DIFFICULTY_MAP = {
+    "easy": {
+        "label": "Easy",
+        "agent_type": "random",
+    },
+    "medium": {
+        "label": "Medium",
+        "agent_type": "material",
+    },
+    "hard": {
+        "label": "Hard",
+        "agent_type": "minimax",
+    },
+    "strong": {
+        "label": "Strong",
+        "agent_type": "neural_guided",
+    },
+    "expert": {
+        "label": "Expert",
+        "agent_type": "neural_guided_strong",
+    },
+}
 
 
 def create_agent(agent_type: str):
@@ -1060,6 +1148,24 @@ def create_agent(agent_type: str):
     raise ValueError(f"Unknown agent type: {agent_type}")
 
 
+def create_agent_from_difficulty(difficulty_key: str):
+    if difficulty_key not in DIFFICULTY_MAP:
+        raise ValueError(f"Unknown difficulty: {difficulty_key}")
+
+    difficulty_config = DIFFICULTY_MAP[difficulty_key]
+    created_agent, created_agent_label = create_agent(difficulty_config["agent_type"])
+
+    return created_agent, created_agent_label, difficulty_config["label"]
+
+
+def get_current_difficulty_key() -> str:
+    for key, config in DIFFICULTY_MAP.items():
+        if config["label"] == difficulty_label:
+            return key
+
+    return "expert"
+
+
 def get_turn_name() -> str:
     return "white" if board.turn == chess.WHITE else "black"
 
@@ -1104,6 +1210,8 @@ def get_state() -> dict:
         "fen": board.fen(),
         "turn": get_turn_name(),
         "human_color": get_color_name(human_color),
+        "difficulty_key": get_current_difficulty_key(),
+        "difficulty_label": difficulty_label,
         "agent_label": agent_label,
         "pieces": get_board_pieces(),
         "legal_moves": [move.uci() for move in board.legal_moves],
@@ -1202,15 +1310,18 @@ def api_new_game():
     global human_color
     global agent
     global agent_label
+    global difficulty_label
     global move_history
 
     data = request.get_json(force=True)
 
-    requested_agent_type = data.get("agent_type", "neural_guided_strong")
+    requested_difficulty = data.get("difficulty", "expert")
     requested_color = data.get("human_color", "black")
 
     try:
-        agent, agent_label = create_agent(requested_agent_type)
+        agent, agent_label, difficulty_label = create_agent_from_difficulty(
+            requested_difficulty
+        )
     except (FileNotFoundError, ValueError) as error:
         return jsonify({"error": str(error)}), 400
 
@@ -1220,7 +1331,7 @@ def api_new_game():
 
     agent_move = make_agent_move_if_needed()
 
-    message = "New game started."
+    message = f"New {difficulty_label} game started."
 
     if agent_move:
         message += f" Agent played {agent_move}."
@@ -1278,5 +1389,5 @@ def api_undo():
 
 
 if __name__ == "__main__":
-    agent, agent_label = create_agent("neural_guided_strong")
+    agent, agent_label, difficulty_label = create_agent_from_difficulty("expert")
     app.run(host="127.0.0.1", port=5000, debug=True)
