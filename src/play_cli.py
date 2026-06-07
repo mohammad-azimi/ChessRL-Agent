@@ -4,6 +4,7 @@ import chess
 
 from agents.material_agent import MaterialAgent
 from agents.minimax_agent import MinimaxAgent
+from agents.neural_guided_agent import NeuralGuidedAgent
 from agents.neural_policy_agent import NeuralPolicyAgent
 from agents.q_learning_agent import QLearningAgent
 from agents.random_agent import RandomAgent
@@ -42,6 +43,7 @@ def select_agent():
     print("3 - Minimax Agent")
     print("4 - Q-learning Agent")
     print("5 - Neural Policy Agent")
+    print("6 - Neural Guided Agent")
 
     while True:
         choice = input("Your choice: ").strip()
@@ -74,8 +76,8 @@ def select_agent():
                 print()
                 print("Neural policy model was not found.")
                 print("Run these first:")
-                print("python src/training/generate_imitation_data.py --positions 1000 --expert-depth 2")
-                print("python src/training/train_policy_network.py --epochs 10")
+                print("python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2")
+                print("python src/training/train_policy_network.py --epochs 15")
                 print()
                 continue
 
@@ -84,7 +86,26 @@ def select_agent():
                 "Neural Policy Agent",
             )
 
-        print("Invalid choice. Please choose 1, 2, 3, 4, or 5.")
+        if choice == "6":
+            if not POLICY_MODEL_PATH.exists():
+                print()
+                print("Neural policy model was not found.")
+                print("Run these first:")
+                print("python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2")
+                print("python src/training/train_policy_network.py --epochs 15")
+                print()
+                continue
+
+            return (
+                NeuralGuidedAgent(
+                    model_path=str(POLICY_MODEL_PATH),
+                    top_k=8,
+                    search_depth=2,
+                ),
+                "Neural Guided Agent",
+            )
+
+        print("Invalid choice. Please choose 1, 2, 3, 4, 5, or 6.")
 
 
 def select_human_color(agent_name: str):

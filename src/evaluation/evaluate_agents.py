@@ -13,6 +13,7 @@ sys.path.append(str(SRC_DIR))
 
 from agents.material_agent import MaterialAgent
 from agents.minimax_agent import MinimaxAgent
+from agents.neural_guided_agent import NeuralGuidedAgent
 from agents.neural_policy_agent import NeuralPolicyAgent
 from agents.q_learning_agent import QLearningAgent
 from agents.random_agent import RandomAgent
@@ -37,11 +38,27 @@ def create_neural_policy_agent():
         raise FileNotFoundError(
             "Neural policy model was not found. "
             "Run these first:\n"
-            "python src/training/generate_imitation_data.py --positions 1000 --expert-depth 2\n"
-            "python src/training/train_policy_network.py --epochs 10"
+            "python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2\n"
+            "python src/training/train_policy_network.py --epochs 15"
         )
 
     return NeuralPolicyAgent(model_path=str(POLICY_MODEL_PATH))
+
+
+def create_neural_guided_agent():
+    if not POLICY_MODEL_PATH.exists():
+        raise FileNotFoundError(
+            "Neural policy model was not found. "
+            "Run these first:\n"
+            "python src/training/generate_imitation_data.py --positions 10000 --expert-depth 2\n"
+            "python src/training/train_policy_network.py --epochs 15"
+        )
+
+    return NeuralGuidedAgent(
+        model_path=str(POLICY_MODEL_PATH),
+        top_k=8,
+        search_depth=2,
+    )
 
 
 AGENT_FACTORIES = {
@@ -50,6 +67,7 @@ AGENT_FACTORIES = {
     "minimax": lambda: MinimaxAgent(depth=2),
     "q_learning": create_q_learning_agent,
     "neural_policy": create_neural_policy_agent,
+    "neural_guided": create_neural_guided_agent,
 }
 
 
@@ -146,14 +164,16 @@ def main() -> None:
     random.seed(args.seed)
 
     matches = [
-        ("neural_policy", "random"),
-        ("random", "neural_policy"),
-        ("neural_policy", "material"),
-        ("material", "neural_policy"),
-        ("neural_policy", "q_learning"),
-        ("q_learning", "neural_policy"),
-        ("neural_policy", "minimax"),
-        ("minimax", "neural_policy"),
+        ("neural_guided", "random"),
+        ("random", "neural_guided"),
+        ("neural_guided", "material"),
+        ("material", "neural_guided"),
+        ("neural_guided", "q_learning"),
+        ("q_learning", "neural_guided"),
+        ("neural_guided", "neural_policy"),
+        ("neural_policy", "neural_guided"),
+        ("neural_guided", "minimax"),
+        ("minimax", "neural_guided"),
     ]
 
     all_results = []
@@ -172,7 +192,7 @@ def main() -> None:
     results_dir = PROJECT_ROOT / "results"
     results_dir.mkdir(exist_ok=True)
 
-    output_path = results_dir / "neural_policy_evaluation_summary.json"
+    output_path = results_dir / "neural_guided_evaluation_summary.json"
 
     with output_path.open("w", encoding="utf-8") as file:
         json.dump(all_results, file, indent=2)
