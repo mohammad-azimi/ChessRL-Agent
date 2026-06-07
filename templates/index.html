@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ChessRL Agent</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <main class="app">
+        <nav class="left-nav">
+            <div class="brand"><span>♟</span> ChessRL</div>
+            <div class="nav-item active">♞</div>
+            <div class="nav-item">⚙</div>
+            <div class="nav-item">📊</div>
+            <div style="flex: 1;"></div>
+            <div class="nav-item">ⓘ</div>
+        </nav>
+
+        <section class="main">
+            <div class="board-section">
+                <div class="top-title">
+                    <div>
+                        <h1>ChessRL Agent</h1>
+                        <p>Play against trained neural-guided chess agents.</p>
+                    </div>
+                    <div class="agent-pill" id="agentBadge">Loading...</div>
+                </div>
+
+                <div class="board-frame">
+                    <div id="board" class="board"></div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="right-panel">
+            <div class="card">
+                <h2>New Game</h2>
+                <div class="controls">
+                    <div>
+                        <label for="difficultySelect">Difficulty</label>
+                        <select id="difficultySelect">
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                            <option value="strong">Strong</option>
+                            <option value="expert" selected>Expert</option>
+                        </select>
+                    </div>
+
+                    <div class="difficulty-card">
+                        <div class="difficulty-item" data-difficulty="easy">Easy</div>
+                        <div class="difficulty-item" data-difficulty="medium">Medium</div>
+                        <div class="difficulty-item" data-difficulty="hard">Hard</div>
+                        <div class="difficulty-item" data-difficulty="strong">Strong</div>
+                        <div class="difficulty-item" data-difficulty="expert">Expert</div>
+                    </div>
+
+                    <div>
+                        <label for="colorSelect">Your Color</label>
+                        <select id="colorSelect">
+                            <option value="white">White</option>
+                            <option value="black" selected>Black</option>
+                        </select>
+                    </div>
+
+                    <button id="newGameButton">Start New Game</button>
+                    <button class="secondary" id="undoButton">Undo Last Move</button>
+                    <button class="secondary" id="resetButton">Reset Board</button>
+                </div>
+                <div class="message" id="message">Choose a difficulty and start a game.</div>
+            </div>
+
+            <div class="card">
+                <h2>Status</h2>
+                <div class="status">
+                    <div>Difficulty: <strong id="difficultyText">-</strong></div>
+                    <div>Engine: <strong id="engineText">-</strong></div>
+                    <div>Turn: <strong id="turnText">-</strong></div>
+                    <div>You: <strong id="humanColorText">-</strong></div>
+                    <div>Result: <strong id="resultText">-</strong></div>
+                    <div>Reason: <strong id="reasonText">-</strong></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Move History</h2>
+                <div class="history" id="moveHistory"></div>
+            </div>
+
+            <div class="card">
+                <h2>Legal Moves</h2>
+                <div class="moves" id="legalMoves"></div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
