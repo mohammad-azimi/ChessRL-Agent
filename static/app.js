@@ -5,6 +5,45 @@ let dragSession = null;
 
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
+const pieceValues = {
+  pawn: 1,
+  knight: 3,
+  bishop: 3,
+  rook: 5,
+  queen: 9,
+  king: 0,
+};
+
+const startingPieceCounts = {
+  pawn: 8,
+  knight: 2,
+  bishop: 2,
+  rook: 2,
+  queen: 1,
+  king: 1,
+};
+
+const capturedPieceOrder = ["queen", "rook", "bishop", "knight", "pawn"];
+
+const pieceUnicode = {
+  white: {
+    pawn: "♙",
+    knight: "♘",
+    bishop: "♗",
+    rook: "♖",
+    queen: "♕",
+    king: "♔",
+  },
+  black: {
+    pawn: "♟",
+    knight: "♞",
+    bishop: "♝",
+    rook: "♜",
+    queen: "♛",
+    king: "♚",
+  },
+};
+
 function setBusy(value, message = null) {
   busy = value;
 
@@ -85,6 +124,18 @@ function isHumanTurn() {
   return currentState && currentState.turn === currentState.human_color;
 }
 
+function getAgentColor(state) {
+  return state.human_color === "white" ? "black" : "white";
+}
+
+function getBottomPlayerColor(state) {
+  return state.human_color;
+}
+
+function getTopPlayerColor(state) {
+  return getAgentColor(state);
+}
+
 function isLegalDestination(fromSquare, toSquare) {
   if (!currentState || !fromSquare) {
     return false;
@@ -119,6 +170,137 @@ function updateDifficultyVisuals(difficulty) {
   document.querySelectorAll(".difficulty-item").forEach((item) => {
     item.classList.toggle("active", item.dataset.difficulty === difficulty);
   });
+}
+
+function countPiecesByColorAndType(state) {
+  const counts = {
+    white: {
+      pawn: 0,
+      knight: 0,
+      bishop: 0,
+      rook: 0,
+      queen: 0,
+      king: 0,
+    },
+    black: {
+      pawn: 0,
+      knight: 0,
+      bishop: 0,
+      rook: 0,
+      queen: 0,
+      king: 0,
+    },
+  };
+
+  for (const piece of Object.values(state.pieces)) {
+    counts[piece.color][piece.type] += 1;
+  }
+
+  return counts;
+}
+
+function calculateMaterialScore(state) {
+  const counts = countPiecesByColorAndType(state);
+
+  let whiteScore = 0;
+  let blackScore = 0;
+
+  for (const [pieceType, value] of Object.entries(pieceValues)) {
+    whiteScore += counts.white[pieceType] * value;
+    blackScore += counts.black[pieceType] * value;
+  }
+
+  return {
+    white: whiteScore,
+    black: blackScore,
+    balance: whiteScore - blackScore,
+  };
+}
+
+function getCapturedPiecesForPlayer(state, playerColor) {
+  const counts = countPiecesByColorAndType(state);
+  const opponentColor = playerColor === "white" ? "black" : "white";
+  const capturedPieces = [];
+
+  for (const pieceType of capturedPieceOrder) {
+    const missingCount =
+      startingPieceCounts[pieceType] - counts[opponentColor][pieceType];
+
+    for (let i = 0; i < missingCount; i += 1) {
+      capturedPieces.push({
+        type: pieceType,
+        color: opponentColor,
+        unicode: pieceUnicode[opponentColor][pieceType],
+      });
+    }
+  }
+
+  return capturedPieces;
+}
+
+function getMaterialAdvantageForPlayer(state, playerColor) {
+  const material = calculateMaterialScore(state);
+
+  if (playerColor === "white" && material.balance > 0) {
+    return "+" + material.balance;
+  }
+
+  if (playerColor === "black" && material.balance < 0) {
+    return "+" + Math.abs(material.balance);
+  }
+
+  return "";
+}
+
+function renderCapturedPieces(elementId, capturedPieces) {
+  const element = document.getElementById(elementId);
+  element.innerHTML = "";
+
+  for (const piece of capturedPieces) {
+    const pieceElement = document.createElement("span");
+    pieceElement.className = "captured-piece";
+    pieceElement.textContent = piece.unicode;
+    element.appendChild(pieceElement);
+  }
+}
+
+function renderPlayerCards(state) {
+  const topColor = getTopPlayerColor(state);
+  const bottomColor = getBottomPlayerColor(state);
+
+  const topCard = document.getElementById("topPlayerCard");
+  const bottomCard = document.getElementById("bottomPlayerCard");
+
+  topCard.classList.toggle("active", state.turn === topColor);
+  bottomCard.classList.toggle("active", state.turn === bottomColor);
+
+  document.getElementById("topPlayerAvatar").textContent =
+    topColor === "white" ? "♙" : "♟";
+  document.getElementById("bottomPlayerAvatar").textContent =
+    bottomColor === "white" ? "♙" : "♟";
+
+  document.getElementById("topPlayerName").textContent = state.agent_label;
+  document.getElementById("bottomPlayerName").textContent = "You";
+
+  document.getElementById("topPlayerMeta").textContent =
+    `${topColor} • ${state.difficulty_label}`;
+  document.getElementById("bottomPlayerMeta").textContent =
+    `${bottomColor} • human`;
+
+  renderCapturedPieces(
+    "topCapturedPieces",
+    getCapturedPiecesForPlayer(state, topColor),
+  );
+  renderCapturedPieces(
+    "bottomCapturedPieces",
+    getCapturedPiecesForPlayer(state, bottomColor),
+  );
+
+  document.getElementById("topMaterialAdvantage").textContent =
+    getMaterialAdvantageForPlayer(state, topColor);
+
+  document.getElementById("bottomMaterialAdvantage").textContent =
+    getMaterialAdvantageForPlayer(state, bottomColor);
 }
 
 function createDragGhost(piece, clientX, clientY) {
@@ -317,6 +499,7 @@ function renderStatus(state) {
   document.getElementById("difficultySelect").value = state.difficulty_key;
   updateDifficultyVisuals(state.difficulty_key);
   renderMoveHistory(state);
+  renderPlayerCards(state);
 
   if (state.game_over) {
     document.getElementById("message").innerHTML =
