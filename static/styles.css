@@ -1,6 +1,5 @@
 :root {
     --bg: #1f1f1c;
-    --sidebar: #262522;
     --panel: #302e2b;
     --panel-soft: #3a3835;
     --border: rgba(255, 255, 255, 0.09);
@@ -20,90 +19,58 @@
     box-sizing: border-box;
 }
 
+html,
 body {
     margin: 0;
-    min-height: 100vh;
+    min-height: 100%;
     background: var(--bg);
     color: var(--text);
-    font-family: Inter, Segoe UI, Arial, sans-serif;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+body {
     overflow-x: hidden;
 }
 
-.app {
-    min-height: 100vh;
-    display: grid;
-    grid-template-columns: 86px minmax(520px, 1fr) 420px;
+.app-shell {
+    width: min(1600px, 100%);
+    margin: 0 auto;
+    padding: 18px 20px 20px;
 }
 
-.left-nav {
-    background: var(--sidebar);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 18px 12px;
+.page-header {
     display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.brand {
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: -0.04em;
-    line-height: 1;
-}
-
-.brand span {
-    color: var(--green);
-}
-
-.nav-item {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.04);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 20px;
-}
-
-.nav-item.active {
-    background: rgba(129, 182, 76, 0.18);
-    color: var(--green);
-}
-
-.main {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 28px;
-}
-
-.board-section {
-    width: min(76vh, calc(100vw - 580px));
-    min-width: 520px;
-    max-width: 780px;
-}
-
-.top-title {
-    display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    align-items: end;
     gap: 16px;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
 }
 
-.top-title h1 {
-    margin: 0;
+.brand-block h1 {
+    margin: 8px 0 6px;
     font-size: 28px;
     letter-spacing: -0.05em;
 }
 
-.top-title p {
-    margin: 6px 0 0;
+.brand-block p {
+    margin: 0;
     color: var(--muted);
     font-size: 14px;
+}
+
+.brand-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -0.04em;
+}
+
+.brand-mark {
+    color: var(--green);
+    font-size: 24px;
 }
 
 .agent-pill {
@@ -114,23 +81,48 @@ body {
     border-radius: 999px;
     font-size: 13px;
     white-space: nowrap;
+    align-self: center;
+}
+
+.layout-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 22px;
+    align-items: start;
+}
+
+.board-column {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.board-frame,
+.player-card {
+    width: min(78vh, calc(100vw - 470px), 860px);
+    max-width: 100%;
 }
 
 .player-card {
-    min-height: 48px;
-    margin: 8px 0;
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: rgba(48, 46, 43, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    min-height: 52px;
+    margin: 0 0 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(48, 46, 43, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
 }
 
+.bottom-player {
+    margin: 10px 0 0;
+}
+
 .player-card.active {
-    box-shadow: 0 0 0 2px rgba(129, 182, 76, 0.55);
+    box-shadow: 0 0 0 2px rgba(129, 182, 76, 0.5);
 }
 
 .player-main {
@@ -143,7 +135,7 @@ body {
 .player-avatar {
     width: 32px;
     height: 32px;
-    border-radius: 7px;
+    border-radius: 8px;
     background: #3a3835;
     display: flex;
     align-items: center;
@@ -158,15 +150,15 @@ body {
 }
 
 .player-name {
+    font-size: 15px;
     font-weight: 900;
-    font-size: 14px;
     white-space: nowrap;
 }
 
 .player-meta {
+    margin-top: 2px;
     color: var(--muted);
     font-size: 12px;
-    margin-top: 2px;
     white-space: nowrap;
 }
 
@@ -180,11 +172,11 @@ body {
 .captured-pieces {
     display: flex;
     align-items: center;
-    gap: 1px;
+    gap: 2px;
     color: #d7d7d7;
     font-size: 18px;
     min-height: 22px;
-    max-width: 210px;
+    max-width: 220px;
     overflow: hidden;
 }
 
@@ -202,14 +194,13 @@ body {
 }
 
 .board-frame {
-    width: 100%;
     aspect-ratio: 1 / 1;
-    border-radius: 6px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow:
-        0 24px 60px rgba(0, 0, 0, 0.38),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
     background: #111;
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.32),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .board {
@@ -284,11 +275,15 @@ body {
     z-index: 4;
 }
 
+.square.dragging {
+    opacity: 0.75;
+}
+
 .piece {
     position: relative;
     z-index: 5;
     font-family: "Segoe UI Symbol", "Arial Unicode MS", "Noto Sans Symbols", serif;
-    font-size: clamp(42px, 7.6vh, 76px);
+    font-size: clamp(40px, 5.5vw, 76px);
     line-height: 1;
     transform: translateY(-1px);
     pointer-events: none;
@@ -309,16 +304,12 @@ body {
         0 6px 12px rgba(0, 0, 0, 0.36);
 }
 
-.square.dragging {
-    opacity: 0.75;
-}
-
 .coord-file,
 .coord-rank {
     position: absolute;
     z-index: 6;
     font-weight: 800;
-    font-size: clamp(12px, 1.45vw, 18px);
+    font-size: clamp(12px, 1vw, 16px);
     pointer-events: none;
     opacity: 0.72;
 }
@@ -344,16 +335,16 @@ body {
 }
 
 .right-panel {
-    background: #211f1c;
-    border-left: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 22px;
+    width: 100%;
+    max-height: calc(100vh - 36px);
     overflow-y: auto;
+    padding-right: 4px;
 }
 
 .card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 18px;
     margin-bottom: 16px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
@@ -380,7 +371,7 @@ label {
 select,
 button {
     width: 100%;
-    border-radius: 7px;
+    border-radius: 8px;
     padding: 12px 13px;
     font-size: 15px;
     font-weight: 700;
@@ -421,7 +412,7 @@ button.secondary {
     margin-top: 12px;
     padding: 12px;
     min-height: 44px;
-    border-radius: 7px;
+    border-radius: 8px;
     color: var(--text);
     background: rgba(129, 182, 76, 0.16);
     line-height: 1.45;
@@ -504,19 +495,6 @@ kbd {
     line-height: 1.5;
 }
 
-.guide-list {
-    display: grid;
-    gap: 9px;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.guide-list div {
-    padding-left: 12px;
-    border-left: 3px solid rgba(129, 182, 76, 0.45);
-}
-
 .history {
     max-height: 260px;
     overflow: auto;
@@ -543,7 +521,7 @@ kbd {
 }
 
 .moves {
-    max-height: 160px;
+    max-height: 170px;
     overflow: auto;
     display: flex;
     flex-wrap: wrap;
@@ -563,59 +541,70 @@ kbd {
     font-weight: 900;
 }
 
-@media (max-width: 1100px) {
-    .app {
-        grid-template-columns: 1fr;
+@media (max-width: 1250px) {
+    .layout-grid {
+        grid-template-columns: minmax(0, 1fr) 330px;
     }
 
-    .left-nav {
-        display: none;
-    }
-
-    .main {
-        padding: 18px;
-    }
-
-    .right-panel {
-        border-left: 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .board-section {
-        width: min(94vw, 720px);
-        min-width: 0;
+    .board-frame,
+    .player-card {
+        width: min(76vh, calc(100vw - 420px), 760px);
     }
 }
 
-@media (max-width: 620px) {
-    .main {
-        padding: 10px;
+@media (max-width: 980px) {
+    .app-shell {
+        padding: 14px;
     }
 
-    .top-title {
+    .page-header {
         display: block;
+        margin-bottom: 14px;
     }
 
     .agent-pill {
         display: inline-block;
-        margin-top: 10px;
+        margin-top: 12px;
     }
 
+    .layout-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .board-frame,
     .player-card {
-        align-items: flex-start;
-        flex-direction: column;
+        width: min(94vw, 760px);
     }
 
     .right-panel {
-        padding: 12px;
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+}
+
+@media (max-width: 620px) {
+    .brand-block h1 {
+        font-size: 24px;
     }
 
-    .piece {
-        font-size: clamp(34px, 11vw, 62px);
+    .player-card {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .difficulty-card,
     .shortcuts-grid {
         grid-template-columns: 1fr;
+    }
+
+    .piece {
+        font-size: clamp(32px, 10vw, 58px);
+    }
+
+    .coord-file,
+    .coord-rank {
+        font-size: 11px;
     }
 }
