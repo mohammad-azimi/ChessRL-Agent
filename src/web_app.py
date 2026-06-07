@@ -26,6 +26,15 @@ difficulty_label = "Expert"
 move_history = []
 
 
+DIFFICULTY_MAP = {
+    "easy": {"label": "Easy", "agent_type": "random"},
+    "medium": {"label": "Medium", "agent_type": "material"},
+    "hard": {"label": "Hard", "agent_type": "minimax"},
+    "strong": {"label": "Strong", "agent_type": "neural_guided"},
+    "expert": {"label": "Expert", "agent_type": "neural_guided_strong"},
+}
+
+
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -42,8 +51,6 @@ HTML_PAGE = """
             --text: #f5f5f5;
             --muted: #b7b7b7;
             --green: #81b64c;
-            --green-dark: #6a9b3f;
-            --blue: #4f7cff;
             --light-square: #ebecd0;
             --dark-square: #779556;
             --last-move: rgba(255, 255, 0, 0.32);
@@ -51,7 +58,6 @@ HTML_PAGE = """
             --legal: rgba(0, 0, 0, 0.22);
             --capture: rgba(0, 0, 0, 0.28);
             --danger: #ff5c5c;
-            --success: #81b64c;
         }
 
         * {
@@ -393,6 +399,7 @@ HTML_PAGE = """
             font-size: 12px;
             color: var(--muted);
             border: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: pointer;
         }
 
         .difficulty-item.active {
@@ -570,7 +577,7 @@ HTML_PAGE = """
 
                     <button id="newGameButton" onclick="startNewGame()">Start New Game</button>
                     <button class="secondary" id="undoButton" onclick="undoMove()">Undo Last Move</button>
-                    <button class="secondary" id="refreshButton" onclick="refreshBoard()">Refresh Board</button>
+                    <button class="secondary" id="resetButton" onclick="resetBoard()">Reset Board</button>
                 </div>
                 <div class="message" id="message">Choose a difficulty and start a game.</div>
             </div>
@@ -606,20 +613,12 @@ HTML_PAGE = """
 
         const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-        const difficultyLabels = {
-            easy: "Easy",
-            medium: "Medium",
-            hard: "Hard",
-            strong: "Strong",
-            expert: "Expert"
-        };
-
         function setBusy(value, message = null) {
             busy = value;
 
             document.getElementById("newGameButton").disabled = value;
             document.getElementById("undoButton").disabled = value;
-            document.getElementById("refreshButton").disabled = value;
+            document.getElementById("resetButton").disabled = value;
 
             const messageElement = document.getElementById("message");
 
@@ -862,7 +861,7 @@ HTML_PAGE = """
             renderStatus(state);
         }
 
-        async function loadState(showMessage = false) {
+        async function loadState() {
             selectedSquare = null;
 
             const response = await fetch("/api/state", {
@@ -871,20 +870,6 @@ HTML_PAGE = """
 
             const data = await response.json();
             renderState(data);
-
-            if (showMessage) {
-                document.getElementById("message").textContent = "Board refreshed.";
-            }
-        }
-
-        async function refreshBoard() {
-            setBusy(true, "Refreshing board...");
-
-            try {
-                await loadState(true);
-            } finally {
-                setBusy(false);
-            }
         }
 
         async function startNewGame() {
@@ -913,6 +898,37 @@ HTML_PAGE = """
 
                 renderState(data.state);
                 document.getElementById("message").textContent = data.message;
+            } finally {
+                setBusy(false);
+            }
+        }
+
+        async function resetBoard() {
+            selectedSquare = null;
+            setBusy(true, "Resetting board...");
+
+            const difficulty = document.getElementById("difficultySelect").value;
+            const color = document.getElementById("colorSelect").value;
+
+            try {
+                const response = await fetch("/api/new-game", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        difficulty: difficulty,
+                        human_color: color
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    document.getElementById("message").textContent = data.error || "Could not reset board.";
+                    return;
+                }
+
+                renderState(data.state);
+                document.getElementById("message").textContent = "Board reset. " + data.message;
             } finally {
                 setBusy(false);
             }
@@ -1053,30 +1069,6 @@ HTML_PAGE = """
 </body>
 </html>
 """
-
-
-DIFFICULTY_MAP = {
-    "easy": {
-        "label": "Easy",
-        "agent_type": "random",
-    },
-    "medium": {
-        "label": "Medium",
-        "agent_type": "material",
-    },
-    "hard": {
-        "label": "Hard",
-        "agent_type": "minimax",
-    },
-    "strong": {
-        "label": "Strong",
-        "agent_type": "neural_guided",
-    },
-    "expert": {
-        "label": "Expert",
-        "agent_type": "neural_guided_strong",
-    },
-}
 
 
 def create_agent(agent_type: str):
