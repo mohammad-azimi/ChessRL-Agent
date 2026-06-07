@@ -2,6 +2,8 @@ let currentState = null;
 let selectedSquare = null;
 let busy = false;
 let dragSession = null;
+let boardOrientation = null;
+let manualOrientation = false;
 
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
@@ -44,12 +46,23 @@ const pieceUnicode = {
   },
 };
 
+function setDisabledById(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.disabled = value;
+  }
+}
+
 function setBusy(value, message = null) {
   busy = value;
 
-  document.getElementById("newGameButton").disabled = value;
-  document.getElementById("undoButton").disabled = value;
-  document.getElementById("resetButton").disabled = value;
+  setDisabledById("newGameButton", value);
+  setDisabledById("undoButton", value);
+  setDisabledById("resetButton", value);
+  setDisabledById("flipBoardButton", value);
+  setDisabledById("copyFenButton", value);
+  setDisabledById("copyPgnButton", value);
 
   const messageElement = document.getElementById("message");
 
@@ -66,6 +79,48 @@ function setBusy(value, message = null) {
 
 function squareName(fileIndex, rankIndex) {
   return files[fileIndex] + String(rankIndex + 1);
+}
+
+function getBoardOrientation(state) {
+  if (boardOrientation) {
+    return boardOrientation;
+  }
+
+  if (state && state.human_color) {
+    return state.human_color;
+  }
+
+  return "white";
+}
+
+function setDefaultBoardOrientation(state) {
+  if (!manualOrientation) {
+    boardOrientation = state.human_color;
+  }
+}
+
+function updateBoardOrientationText() {
+  const element = document.getElementById("boardOrientationText");
+
+  if (element) {
+    element.textContent = boardOrientation || "-";
+  }
+}
+
+function flipBoard() {
+  if (!currentState) {
+    return;
+  }
+
+  boardOrientation =
+    getBoardOrientation(currentState) === "white" ? "black" : "white";
+  manualOrientation = true;
+  selectedSquare = null;
+
+  renderBoard(currentState);
+  updateBoardOrientationText();
+
+  document.getElementById("message").textContent = "Board flipped.";
 }
 
 function getDisplaySquares(orientation) {
@@ -129,11 +184,11 @@ function getAgentColor(state) {
 }
 
 function getBottomPlayerColor(state) {
-  return state.human_color;
+  return getBoardOrientation(state);
 }
 
 function getTopPlayerColor(state) {
-  return getAgentColor(state);
+  return getBoardOrientation(state) === "white" ? "black" : "white";
 }
 
 function isLegalDestination(fromSquare, toSquare) {
@@ -267,6 +322,7 @@ function renderCapturedPieces(elementId, capturedPieces) {
 function renderPlayerCards(state) {
   const topColor = getTopPlayerColor(state);
   const bottomColor = getBottomPlayerColor(state);
+  const agentColor = getAgentColor(state);
 
   const topCard = document.getElementById("topPlayerCard");
   const bottomCard = document.getElementById("bottomPlayerCard");
@@ -279,13 +335,25 @@ function renderPlayerCards(state) {
   document.getElementById("bottomPlayerAvatar").textContent =
     bottomColor === "white" ? "♙" : "♟";
 
-  document.getElementById("topPlayerName").textContent = state.agent_label;
-  document.getElementById("bottomPlayerName").textContent = "You";
+  if (topColor === state.human_color) {
+    document.getElementById("topPlayerName").textContent = "You";
+    document.getElementById("topPlayerMeta").textContent =
+      `${topColor} • human`;
+  } else {
+    document.getElementById("topPlayerName").textContent = state.agent_label;
+    document.getElementById("topPlayerMeta").textContent =
+      `${agentColor} • ${state.difficulty_label}`;
+  }
 
-  document.getElementById("topPlayerMeta").textContent =
-    `${topColor} • ${state.difficulty_label}`;
-  document.getElementById("bottomPlayerMeta").textContent =
-    `${bottomColor} • human`;
+  if (bottomColor === state.human_color) {
+    document.getElementById("bottomPlayerName").textContent = "You";
+    document.getElementById("bottomPlayerMeta").textContent =
+      `${bottomColor} • human`;
+  } else {
+    document.getElementById("bottomPlayerName").textContent = state.agent_label;
+    document.getElementById("bottomPlayerMeta").textContent =
+      `${agentColor} • ${state.difficulty_label}`;
+  }
 
   renderCapturedPieces(
     "topCapturedPieces",
@@ -363,7 +431,8 @@ function renderBoard(state) {
   const boardElement = document.getElementById("board");
   boardElement.innerHTML = "";
 
-  const displaySquares = getDisplaySquares(state.human_color);
+  const orientation = getBoardOrientation(state);
+  const displaySquares = getDisplaySquares(orientation);
   const pieceMap = state.pieces;
   const lastMoveSquares = getLastMoveSquares(state);
 
@@ -407,14 +476,14 @@ function renderBoard(state) {
       handlePointerDown(event, square);
     });
 
-    if (shouldShowRankLabel(square, state.human_color)) {
+    if (shouldShowRankLabel(square, orientation)) {
       const rankLabel = document.createElement("div");
       rankLabel.className = "coord-rank";
       rankLabel.textContent = square[1];
       squareElement.appendChild(rankLabel);
     }
 
-    if (shouldShowFileLabel(square, state.human_color)) {
+    if (shouldShowFileLabel(square, orientation)) {
       const fileLabel = document.createElement("div");
       fileLabel.className = "coord-file";
       fileLabel.textContent = square[0];
@@ -483,6 +552,8 @@ function renderStatus(state) {
   document.getElementById("engineText").textContent = state.agent_label;
   document.getElementById("turnText").textContent = state.turn;
   document.getElementById("humanColorText").textContent = state.human_color;
+  document.getElementById("boardOrientationText").textContent =
+    getBoardOrientation(state);
   document.getElementById("resultText").textContent = state.result || "-";
   document.getElementById("reasonText").textContent = state.reason || "-";
 
@@ -509,6 +580,7 @@ function renderStatus(state) {
 
 function renderState(state) {
   currentState = state;
+  setDefaultBoardOrientation(state);
   renderBoard(state);
   renderStatus(state);
 }
@@ -526,6 +598,7 @@ async function loadState() {
 
 async function startNewGame() {
   selectedSquare = null;
+  manualOrientation = false;
   setBusy(true, "Starting a new game...");
 
   const difficulty = document.getElementById("difficultySelect").value;
@@ -558,6 +631,7 @@ async function startNewGame() {
 
 async function resetBoard() {
   selectedSquare = null;
+  manualOrientation = false;
   setBusy(true, "Resetting board...");
 
   const difficulty = document.getElementById("difficultySelect").value;
@@ -843,11 +917,97 @@ function cleanupPointerDrag() {
   dragSession = null;
 }
 
+async function copyTextToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const copied = document.execCommand("copy");
+    textarea.remove();
+
+    return copied;
+  }
+}
+
+async function copyFen() {
+  if (!currentState) {
+    return;
+  }
+
+  const copied = await copyTextToClipboard(currentState.fen);
+
+  document.getElementById("message").textContent = copied
+    ? "FEN copied to clipboard."
+    : "Could not copy FEN.";
+}
+
+function buildPgnFromHistory(state) {
+  const lines = [
+    '[Event "ChessRL Agent Game"]',
+    '[Site "Local Flask App"]',
+    `[Difficulty "${state.difficulty_label}"]`,
+    `[Engine "${state.agent_label}"]`,
+    `[HumanColor "${state.human_color}"]`,
+    `[Result "${state.result || "*"}"]`,
+    "",
+  ];
+
+  const moveTokens = [];
+
+  for (let i = 0; i < state.move_history.length; i += 2) {
+    const moveNumber = Math.floor(i / 2) + 1;
+    const whiteMove = state.move_history[i];
+    const blackMove = state.move_history[i + 1];
+
+    let token = `${moveNumber}.`;
+
+    if (whiteMove) {
+      token += ` ${whiteMove.san}`;
+    }
+
+    if (blackMove) {
+      token += ` ${blackMove.san}`;
+    }
+
+    moveTokens.push(token);
+  }
+
+  const result = state.result || "*";
+  lines.push(
+    moveTokens.join(" ") + (moveTokens.length > 0 ? " " : "") + result,
+  );
+
+  return lines.join("\n");
+}
+
+async function copyPgn() {
+  if (!currentState) {
+    return;
+  }
+
+  const pgn = buildPgnFromHistory(currentState);
+  const copied = await copyTextToClipboard(pgn);
+
+  document.getElementById("message").textContent = copied
+    ? "PGN copied to clipboard."
+    : "Could not copy PGN.";
+}
+
 document
   .getElementById("newGameButton")
   .addEventListener("click", startNewGame);
 document.getElementById("undoButton").addEventListener("click", undoMove);
 document.getElementById("resetButton").addEventListener("click", resetBoard);
+document.getElementById("flipBoardButton").addEventListener("click", flipBoard);
+document.getElementById("copyFenButton").addEventListener("click", copyFen);
+document.getElementById("copyPgnButton").addEventListener("click", copyPgn);
 
 document
   .getElementById("difficultySelect")
