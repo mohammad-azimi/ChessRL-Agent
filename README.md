@@ -2,6 +2,8 @@
 
 A reinforcement-learning and neural-guided chess agent project with a playable browser-based chess interface.
 
+![ChessRL Agent Web App](docs/images/chessrl-web-app.png)
+
 This project started as a simple command-line chess environment and gradually evolved into a full chess AI playground. It includes baseline chess agents, Q-learning experiments, imitation learning, a neural policy network, neural-guided search, evaluation tools, and a Flask web application for playing against the trained agents.
 
 ## Features
@@ -37,6 +39,9 @@ This project started as a simple command-line chess environment and gradually ev
 ChessRL-Agent/
 ├── data/
 │   └── imitation_positions.jsonl
+├── docs/
+│   └── images/
+│       └── chessrl-web-app.png
 ├── models/
 │   ├── policy_network.pt
 │   └── q_learning_agent.json
