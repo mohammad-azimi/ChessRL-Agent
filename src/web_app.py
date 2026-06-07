@@ -22,6 +22,7 @@ board = chess.Board()
 human_color = chess.WHITE
 agent = None
 agent_label = "Neural Guided Strong Agent"
+move_history = []
 
 
 HTML_PAGE = """
@@ -32,18 +33,24 @@ HTML_PAGE = """
     <title>ChessRL Agent</title>
     <style>
         :root {
-            --bg: #0f1117;
-            --panel: #171a23;
-            --panel-soft: #1f2330;
-            --text: #f5f7fb;
-            --muted: #9aa3b2;
-            --accent: #8b5cf6;
-            --accent-soft: rgba(139, 92, 246, 0.25);
-            --light-square: #e7d8c3;
-            --dark-square: #7a5a42;
-            --selected: #facc15;
-            --legal: #22c55e;
-            --danger: #ef4444;
+            --bg: #1f1f1c;
+            --sidebar: #262522;
+            --panel: #302e2b;
+            --panel-soft: #3a3835;
+            --border: rgba(255, 255, 255, 0.09);
+            --text: #f5f5f5;
+            --muted: #b7b7b7;
+            --green: #81b64c;
+            --green-dark: #6a9b3f;
+            --blue: #4f7cff;
+            --light-square: #ebecd0;
+            --dark-square: #779556;
+            --last-move: rgba(255, 255, 0, 0.32);
+            --selected: rgba(246, 246, 105, 0.58);
+            --legal: rgba(0, 0, 0, 0.22);
+            --capture: rgba(0, 0, 0, 0.28);
+            --danger: #ff5c5c;
+            --success: #81b64c;
         }
 
         * {
@@ -53,146 +60,255 @@ HTML_PAGE = """
         body {
             margin: 0;
             min-height: 100vh;
-            background:
-                radial-gradient(circle at top left, rgba(139, 92, 246, 0.18), transparent 34%),
-                radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.16), transparent 34%),
-                var(--bg);
+            background: var(--bg);
             color: var(--text);
             font-family: Inter, Segoe UI, Arial, sans-serif;
+            overflow-x: hidden;
         }
 
-        .page {
-            width: min(1200px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 32px 0;
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 86px minmax(520px, 1fr) 420px;
         }
 
-        .header {
+        .left-nav {
+            background: var(--sidebar);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 18px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .brand {
+            font-size: 19px;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1;
+        }
+
+        .brand span {
+            color: var(--green);
+        }
+
+        .nav-item {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 20px;
+        }
+
+        .nav-item.active {
+            background: rgba(129, 182, 76, 0.18);
+            color: var(--green);
+        }
+
+        .main {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+        }
+
+        .board-section {
+            width: min(82vh, calc(100vw - 560px));
+            min-width: 520px;
+            max-width: 820px;
+        }
+
+        .top-title {
             display: flex;
             justify-content: space-between;
-            gap: 20px;
-            align-items: flex-start;
-            margin-bottom: 24px;
+            align-items: end;
+            gap: 16px;
+            margin-bottom: 14px;
         }
 
-        .title h1 {
+        .top-title h1 {
             margin: 0;
-            font-size: 36px;
-            letter-spacing: -0.04em;
+            font-size: 28px;
+            letter-spacing: -0.05em;
         }
 
-        .title p {
-            margin: 8px 0 0;
+        .top-title p {
+            margin: 6px 0 0;
             color: var(--muted);
-            line-height: 1.6;
+            font-size: 14px;
         }
 
-        .badge {
-            padding: 10px 14px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+        .agent-pill {
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: #d8f5c5;
+            padding: 8px 12px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--muted);
+            font-size: 13px;
             white-space: nowrap;
         }
 
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(320px, 680px) minmax(280px, 1fr);
-            gap: 24px;
-            align-items: start;
-        }
-
-        .board-shell {
-            padding: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 28px;
-            background: rgba(255, 255, 255, 0.045);
-            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
+        .board-frame {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.38),
+                0 0 0 1px rgba(255, 255, 255, 0.08);
+            background: #111;
         }
 
         .board {
             width: 100%;
-            aspect-ratio: 1 / 1;
+            height: 100%;
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            overflow: hidden;
-            border-radius: 18px;
-            border: 1px solid rgba(0, 0, 0, 0.35);
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            grid-template-rows: repeat(8, minmax(0, 1fr));
         }
 
         .square {
             position: relative;
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(28px, 7vw, 62px);
-            line-height: 1;
             cursor: pointer;
             user-select: none;
+            overflow: hidden;
         }
 
         .square.light {
-            background: var(--light-square);
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0)),
+                var(--light-square);
         }
 
         .square.dark {
-            background: var(--dark-square);
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.06)),
+                var(--dark-square);
         }
 
-        .square.selected {
-            outline: 5px solid var(--selected);
-            outline-offset: -5px;
+        .square.last-move::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--last-move);
+            z-index: 1;
+        }
+
+        .square.selected::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--selected);
+            z-index: 2;
         }
 
         .square.legal::after {
             content: "";
-            width: 24%;
-            height: 24%;
+            width: 30%;
+            height: 30%;
             border-radius: 50%;
-            background: rgba(34, 197, 94, 0.8);
+            background: var(--legal);
             position: absolute;
-            box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.14);
+            z-index: 4;
         }
 
         .square.capture::after {
             content: "";
-            width: 78%;
-            height: 78%;
+            width: 86%;
+            height: 86%;
             border-radius: 50%;
-            border: 5px solid rgba(34, 197, 94, 0.8);
+            border: clamp(4px, 0.65vw, 7px) solid var(--capture);
             position: absolute;
-        }
-
-        .coord {
-            position: absolute;
-            left: 7px;
-            bottom: 5px;
-            font-size: 11px;
-            font-weight: 700;
-            color: rgba(0, 0, 0, 0.42);
+            z-index: 4;
         }
 
         .piece {
             position: relative;
-            z-index: 2;
-            filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.25));
+            z-index: 5;
+            font-family: "Segoe UI Symbol", "Arial Unicode MS", "Noto Sans Symbols", serif;
+            font-size: clamp(42px, 8.2vh, 82px);
+            line-height: 1;
+            transform: translateY(-1px);
+            pointer-events: none;
         }
 
-        .panel {
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 28px;
-            background: rgba(255, 255, 255, 0.045);
-            padding: 20px;
+        .piece.white {
+            color: #ffffff;
+            text-shadow:
+                0 2px 0 rgba(0, 0, 0, 0.22),
+                0 5px 12px rgba(0, 0, 0, 0.36);
         }
 
-        .panel + .panel {
-            margin-top: 18px;
+        .piece.black {
+            color: #2f2f2f;
+            -webkit-text-stroke: 1.1px rgba(255, 255, 255, 0.32);
+            text-shadow:
+                0 2px 0 rgba(255, 255, 255, 0.12),
+                0 6px 12px rgba(0, 0, 0, 0.36);
         }
 
-        .panel h2 {
+        .coord-file,
+        .coord-rank {
+            position: absolute;
+            z-index: 6;
+            font-weight: 800;
+            font-size: clamp(12px, 1.45vw, 18px);
+            pointer-events: none;
+            opacity: 0.72;
+        }
+
+        .coord-file {
+            right: 6px;
+            bottom: 4px;
+        }
+
+        .coord-rank {
+            left: 6px;
+            top: 4px;
+        }
+
+        .square.light .coord-file,
+        .square.light .coord-rank {
+            color: var(--dark-square);
+        }
+
+        .square.dark .coord-file,
+        .square.dark .coord-rank {
+            color: var(--light-square);
+        }
+
+        .right-panel {
+            background: #211f1c;
+            border-left: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 22px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+        }
+
+        .card h2 {
             margin: 0 0 14px;
             font-size: 18px;
+            letter-spacing: -0.02em;
         }
 
         .controls {
@@ -201,163 +317,279 @@ HTML_PAGE = """
         }
 
         label {
+            display: block;
+            margin-bottom: 6px;
             color: var(--muted);
             font-size: 13px;
         }
 
-        select, button {
+        select,
+        button {
             width: 100%;
-            border: 0;
-            border-radius: 14px;
-            padding: 12px 14px;
+            border-radius: 7px;
+            padding: 12px 13px;
             font-size: 15px;
+            font-weight: 700;
         }
 
         select {
-            background: var(--panel-soft);
             color: var(--text);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #262a35;
+            border: 1px solid rgba(255, 255, 255, 0.11);
         }
 
         button {
-            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            border: 0;
             color: white;
-            font-weight: 700;
+            background: var(--green);
             cursor: pointer;
+            transition: filter 0.15s ease, transform 0.15s ease;
+        }
+
+        button:hover {
+            filter: brightness(1.08);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         button.secondary {
-            background: var(--panel-soft);
-            border: 1px solid rgba(255, 255, 255, 0.12);
             color: var(--text);
+            background: var(--panel-soft);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+        }
+
+        .message {
+            margin-top: 12px;
+            padding: 12px;
+            min-height: 44px;
+            border-radius: 7px;
+            color: var(--text);
+            background: rgba(129, 182, 76, 0.16);
+            line-height: 1.45;
+            font-size: 14px;
+        }
+
+        .message.thinking {
+            background: rgba(79, 124, 255, 0.22);
         }
 
         .status {
             display: grid;
-            gap: 10px;
+            gap: 9px;
             color: var(--muted);
-            line-height: 1.5;
+            font-size: 14px;
         }
 
         .status strong {
             color: var(--text);
         }
 
-        .message {
-            margin-top: 12px;
-            padding: 12px;
-            border-radius: 14px;
-            background: var(--accent-soft);
+        .history {
+            max-height: 260px;
+            overflow: auto;
+            display: grid;
+            gap: 6px;
+            padding-right: 4px;
+        }
+
+        .history-row {
+            display: grid;
+            grid-template-columns: 44px 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+            min-height: 34px;
+            padding: 7px 9px;
+            border-radius: 7px;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 13px;
+        }
+
+        .history-row strong {
             color: var(--text);
-            min-height: 46px;
-            line-height: 1.5;
         }
 
         .moves {
-            max-height: 260px;
+            max-height: 160px;
             overflow: auto;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 7px;
         }
 
         .move-pill {
-            padding: 7px 9px;
             border-radius: 999px;
-            background: var(--panel-soft);
-            color: var(--muted);
+            padding: 7px 9px;
+            color: #d6d6d6;
+            background: rgba(255, 255, 255, 0.06);
             font-size: 13px;
         }
 
         .game-over {
             color: var(--danger);
-            font-weight: 800;
+            font-weight: 900;
         }
 
-        @media (max-width: 900px) {
-            .header {
-                flex-direction: column;
-            }
-
-            .layout {
+        @media (max-width: 1100px) {
+            .app {
                 grid-template-columns: 1fr;
             }
 
-            .badge {
-                white-space: normal;
+            .left-nav {
+                display: none;
+            }
+
+            .main {
+                padding: 18px;
+            }
+
+            .right-panel {
+                border-left: 0;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+            }
+
+            .board-section {
+                width: min(94vw, 720px);
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .main {
+                padding: 10px;
+            }
+
+            .top-title {
+                display: block;
+            }
+
+            .agent-pill {
+                display: inline-block;
+                margin-top: 10px;
+            }
+
+            .right-panel {
+                padding: 12px;
+            }
+
+            .piece {
+                font-size: clamp(34px, 11vw, 62px);
             }
         }
     </style>
 </head>
 <body>
-    <main class="page">
-        <section class="header">
-            <div class="title">
-                <h1>ChessRL Agent</h1>
-                <p>Play chess against your trained reinforcement-learning and neural-guided agents.</p>
+    <main class="app">
+        <nav class="left-nav">
+            <div class="brand"><span>♟</span> ChessRL</div>
+            <div class="nav-item active">♞</div>
+            <div class="nav-item">⚙</div>
+            <div class="nav-item">📊</div>
+            <div style="flex: 1;"></div>
+            <div class="nav-item">ⓘ</div>
+        </nav>
+
+        <section class="main">
+            <div class="board-section">
+                <div class="top-title">
+                    <div>
+                        <h1>ChessRL Agent</h1>
+                        <p>Play against trained neural-guided chess agents.</p>
+                    </div>
+                    <div class="agent-pill" id="agentBadge">Loading...</div>
+                </div>
+
+                <div class="board-frame">
+                    <div id="board" class="board"></div>
+                </div>
             </div>
-            <div class="badge" id="agentBadge">Loading...</div>
         </section>
 
-        <section class="layout">
-            <div class="board-shell">
-                <div id="board" class="board"></div>
+        <aside class="right-panel">
+            <div class="card">
+                <h2>New Game</h2>
+                <div class="controls">
+                    <div>
+                        <label for="agentSelect">Agent</label>
+                        <select id="agentSelect">
+                            <option value="neural_guided_strong" selected>Neural Guided Strong Agent</option>
+                            <option value="neural_guided">Neural Guided Agent</option>
+                            <option value="neural_policy">Neural Policy Agent</option>
+                            <option value="minimax">Minimax Agent</option>
+                            <option value="material">Material Agent</option>
+                            <option value="q_learning">Q-learning Agent</option>
+                            <option value="random">Random Agent</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="colorSelect">Your Color</label>
+                        <select id="colorSelect">
+                            <option value="white">White</option>
+                            <option value="black" selected>Black</option>
+                        </select>
+                    </div>
+
+                    <button id="newGameButton" onclick="startNewGame()">Start New Game</button>
+                    <button class="secondary" id="undoButton" onclick="undoMove()">Undo Last Move</button>
+                    <button class="secondary" id="refreshButton" onclick="refreshBoard()">Refresh Board</button>
+                </div>
+                <div class="message" id="message">Choose an agent and start a game.</div>
             </div>
 
-            <aside>
-                <div class="panel">
-                    <h2>New Game</h2>
-                    <div class="controls">
-                        <div>
-                            <label for="agentSelect">Agent</label>
-                            <select id="agentSelect">
-                                <option value="neural_guided_strong" selected>Neural Guided Strong Agent</option>
-                                <option value="neural_guided">Neural Guided Agent</option>
-                                <option value="neural_policy">Neural Policy Agent</option>
-                                <option value="minimax">Minimax Agent</option>
-                                <option value="material">Material Agent</option>
-                                <option value="q_learning">Q-learning Agent</option>
-                                <option value="random">Random Agent</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="colorSelect">Your Color</label>
-                            <select id="colorSelect">
-                                <option value="white">White</option>
-                                <option value="black" selected>Black</option>
-                            </select>
-                        </div>
-
-                        <button onclick="startNewGame()">Start New Game</button>
-                        <button class="secondary" onclick="loadState()">Refresh Board</button>
-                    </div>
-                    <div class="message" id="message">Choose an agent and start a game.</div>
+            <div class="card">
+                <h2>Status</h2>
+                <div class="status">
+                    <div>Turn: <strong id="turnText">-</strong></div>
+                    <div>You: <strong id="humanColorText">-</strong></div>
+                    <div>Result: <strong id="resultText">-</strong></div>
+                    <div>Reason: <strong id="reasonText">-</strong></div>
                 </div>
+            </div>
 
-                <div class="panel">
-                    <h2>Status</h2>
-                    <div class="status">
-                        <div>Turn: <strong id="turnText">-</strong></div>
-                        <div>You: <strong id="humanColorText">-</strong></div>
-                        <div>Result: <strong id="resultText">-</strong></div>
-                        <div>Reason: <strong id="reasonText">-</strong></div>
-                    </div>
-                </div>
+            <div class="card">
+                <h2>Move History</h2>
+                <div class="history" id="moveHistory"></div>
+            </div>
 
-                <div class="panel">
-                    <h2>Legal Moves</h2>
-                    <div class="moves" id="legalMoves"></div>
-                </div>
-            </aside>
-        </section>
+            <div class="card">
+                <h2>Legal Moves</h2>
+                <div class="moves" id="legalMoves"></div>
+            </div>
+        </aside>
     </main>
 
     <script>
         let currentState = null;
         let selectedSquare = null;
+        let busy = false;
 
         const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+        function setBusy(value, message = null) {
+            busy = value;
+
+            document.getElementById("newGameButton").disabled = value;
+            document.getElementById("undoButton").disabled = value;
+            document.getElementById("refreshButton").disabled = value;
+
+            const messageElement = document.getElementById("message");
+
+            if (message) {
+                messageElement.textContent = message;
+            }
+
+            if (value) {
+                messageElement.classList.add("thinking");
+            } else {
+                messageElement.classList.remove("thinking");
+            }
+        }
 
         function squareName(fileIndex, rankIndex) {
             return files[fileIndex] + String(rankIndex + 1);
@@ -381,6 +613,39 @@ HTML_PAGE = """
             }
 
             return squares;
+        }
+
+        function getLastMoveSquares(state) {
+            if (!state || !state.move_history || state.move_history.length === 0) {
+                return [];
+            }
+
+            const lastMove = state.move_history[state.move_history.length - 1].uci;
+
+            return [
+                lastMove.slice(0, 2),
+                lastMove.slice(2, 4),
+            ];
+        }
+
+        function shouldShowFileLabel(square, orientation) {
+            const rank = square[1];
+
+            if (orientation === "white") {
+                return rank === "1";
+            }
+
+            return rank === "8";
+        }
+
+        function shouldShowRankLabel(square, orientation) {
+            const file = square[0];
+
+            if (orientation === "white") {
+                return file === "a";
+            }
+
+            return file === "h";
         }
 
         function isLegalDestination(fromSquare, toSquare) {
@@ -417,9 +682,9 @@ HTML_PAGE = """
 
             const displaySquares = getDisplaySquares(state.human_color);
             const pieceMap = state.pieces;
+            const lastMoveSquares = getLastMoveSquares(state);
 
-            for (let index = 0; index < displaySquares.length; index++) {
-                const square = displaySquares[index];
+            for (const square of displaySquares) {
                 const fileIndex = files.indexOf(square[0]);
                 const rankIndex = Number(square[1]) - 1;
 
@@ -428,6 +693,10 @@ HTML_PAGE = """
 
                 const isLight = (fileIndex + rankIndex) % 2 === 0;
                 squareElement.classList.add(isLight ? "light" : "dark");
+
+                if (lastMoveSquares.includes(square)) {
+                    squareElement.classList.add("last-move");
+                }
 
                 if (selectedSquare === square) {
                     squareElement.classList.add("selected");
@@ -443,22 +712,70 @@ HTML_PAGE = """
 
                 squareElement.onclick = () => handleSquareClick(square);
 
-                const coord = document.createElement("div");
-                coord.className = "coord";
-                coord.textContent = square;
-                squareElement.appendChild(coord);
+                if (shouldShowRankLabel(square, state.human_color)) {
+                    const rankLabel = document.createElement("div");
+                    rankLabel.className = "coord-rank";
+                    rankLabel.textContent = square[1];
+                    squareElement.appendChild(rankLabel);
+                }
+
+                if (shouldShowFileLabel(square, state.human_color)) {
+                    const fileLabel = document.createElement("div");
+                    fileLabel.className = "coord-file";
+                    fileLabel.textContent = square[0];
+                    squareElement.appendChild(fileLabel);
+                }
 
                 const piece = pieceMap[square];
 
                 if (piece) {
                     const pieceElement = document.createElement("div");
                     pieceElement.className = "piece";
+                    pieceElement.classList.add(piece.color);
                     pieceElement.textContent = piece.unicode;
                     squareElement.appendChild(pieceElement);
                 }
 
                 boardElement.appendChild(squareElement);
             }
+        }
+
+        function renderMoveHistory(state) {
+            const historyElement = document.getElementById("moveHistory");
+            historyElement.innerHTML = "";
+
+            if (!state.move_history || state.move_history.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "move-pill";
+                empty.textContent = "No moves yet.";
+                historyElement.appendChild(empty);
+                return;
+            }
+
+            for (let i = 0; i < state.move_history.length; i += 2) {
+                const whiteMove = state.move_history[i];
+                const blackMove = state.move_history[i + 1];
+
+                const row = document.createElement("div");
+                row.className = "history-row";
+
+                const moveNumber = document.createElement("strong");
+                moveNumber.textContent = String(Math.floor(i / 2) + 1) + ".";
+
+                const whiteCell = document.createElement("div");
+                whiteCell.textContent = whiteMove ? whiteMove.san + " (" + whiteMove.side + ")" : "-";
+
+                const blackCell = document.createElement("div");
+                blackCell.textContent = blackMove ? blackMove.san + " (" + blackMove.side + ")" : "-";
+
+                row.appendChild(moveNumber);
+                row.appendChild(whiteCell);
+                row.appendChild(blackCell);
+
+                historyElement.appendChild(row);
+            }
+
+            historyElement.scrollTop = historyElement.scrollHeight;
         }
 
         function renderStatus(state) {
@@ -478,6 +795,8 @@ HTML_PAGE = """
                 legalMovesElement.appendChild(moveElement);
             }
 
+            renderMoveHistory(state);
+
             if (state.game_over) {
                 document.getElementById("message").innerHTML =
                     "<span class='game-over'>Game over.</span> Result: " + state.result;
@@ -490,67 +809,135 @@ HTML_PAGE = """
             renderStatus(state);
         }
 
-        async function loadState() {
-            const response = await fetch("/api/state");
+        async function loadState(showMessage = false) {
+            selectedSquare = null;
+
+            const response = await fetch("/api/state", {
+                cache: "no-store"
+            });
+
             const data = await response.json();
             renderState(data);
+
+            if (showMessage) {
+                document.getElementById("message").textContent = "Board refreshed.";
+            }
+        }
+
+        async function refreshBoard() {
+            setBusy(true, "Refreshing board...");
+
+            try {
+                await loadState(true);
+            } finally {
+                setBusy(false);
+            }
         }
 
         async function startNewGame() {
             selectedSquare = null;
+            setBusy(true, "Starting a new game...");
 
             const agentType = document.getElementById("agentSelect").value;
             const color = document.getElementById("colorSelect").value;
 
-            const response = await fetch("/api/new-game", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    agent_type: agentType,
-                    human_color: color
-                })
-            });
+            try {
+                const response = await fetch("/api/new-game", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        agent_type: agentType,
+                        human_color: color
+                    })
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (!response.ok) {
-                document.getElementById("message").textContent = data.error || "Could not start game.";
-                return;
+                if (!response.ok) {
+                    document.getElementById("message").textContent = data.error || "Could not start game.";
+                    return;
+                }
+
+                renderState(data.state);
+                document.getElementById("message").textContent = data.message;
+            } finally {
+                setBusy(false);
             }
+        }
 
-            document.getElementById("message").textContent = data.message;
-            renderState(data.state);
+        async function undoMove() {
+            selectedSquare = null;
+            setBusy(true, "Undoing last move...");
+
+            try {
+                const response = await fetch("/api/undo", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"}
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (data.state) {
+                        renderState(data.state);
+                    }
+
+                    document.getElementById("message").textContent = data.error || "Could not undo move.";
+                    return;
+                }
+
+                renderState(data.state);
+                document.getElementById("message").textContent = data.message;
+            } finally {
+                setBusy(false);
+            }
         }
 
         async function makeMove(move) {
-            const response = await fetch("/api/move", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({move})
-            });
+            setBusy(true, "Thinking...");
 
-            const data = await response.json();
+            try {
+                const response = await fetch("/api/move", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({move})
+                });
 
-            if (!response.ok) {
-                document.getElementById("message").textContent = data.error || "Illegal move.";
+                const data = await response.json();
+
+                if (!response.ok) {
+                    selectedSquare = null;
+
+                    if (data.state) {
+                        renderState(data.state);
+                    } else {
+                        await loadState();
+                    }
+
+                    document.getElementById("message").textContent = data.error || "Illegal move.";
+                    return;
+                }
+
                 selectedSquare = null;
-                await loadState();
-                return;
+                renderState(data.state);
+
+                let message = "You played " + data.human_move + ".";
+
+                if (data.agent_move) {
+                    message += " Agent played " + data.agent_move + ".";
+                }
+
+                document.getElementById("message").textContent = message;
+            } finally {
+                setBusy(false);
             }
-
-            selectedSquare = null;
-
-            let message = "You played " + data.human_move + ".";
-
-            if (data.agent_move) {
-                message += " Agent played " + data.agent_move + ".";
-            }
-
-            document.getElementById("message").textContent = message;
-            renderState(data.state);
         }
 
         function handleSquareClick(square) {
+            if (busy) {
+                return;
+            }
+
             if (!currentState || currentState.game_over) {
                 return;
             }
@@ -720,6 +1107,7 @@ def get_state() -> dict:
         "agent_label": agent_label,
         "pieces": get_board_pieces(),
         "legal_moves": [move.uci() for move in board.legal_moves],
+        "move_history": move_history,
         "game_over": board.is_game_over(),
         "result": board.result() if board.is_game_over() else None,
         "reason": get_game_reason(),
@@ -744,6 +1132,20 @@ def parse_uci_move(move_uci: str) -> chess.Move:
     raise ValueError(f"Illegal move: {move_uci}")
 
 
+def record_move(move: chess.Move, side: str, san: str) -> None:
+    move_history.append({
+        "uci": move.uci(),
+        "san": san,
+        "side": side,
+    })
+
+
+def push_recorded_move(move: chess.Move, side: str) -> None:
+    san = board.san(move)
+    board.push(move)
+    record_move(move=move, side=side, san=san)
+
+
 def make_agent_move_if_needed() -> str | None:
     if board.is_game_over():
         return None
@@ -759,8 +1161,29 @@ def make_agent_move_if_needed() -> str | None:
     if selected_move not in board.legal_moves:
         raise ValueError(f"Agent selected illegal move: {selected_move}")
 
-    board.push(selected_move)
+    push_recorded_move(selected_move, "agent")
     return selected_move.uci()
+
+
+def undo_last_human_turn() -> bool:
+    if not move_history:
+        return False
+
+    last_human_index = None
+
+    for index in range(len(move_history) - 1, -1, -1):
+        if move_history[index]["side"] == "human":
+            last_human_index = index
+            break
+
+    if last_human_index is None:
+        return False
+
+    while len(move_history) > last_human_index:
+        move_history.pop()
+        board.pop()
+
+    return True
 
 
 @app.route("/")
@@ -779,6 +1202,7 @@ def api_new_game():
     global human_color
     global agent
     global agent_label
+    global move_history
 
     data = request.get_json(force=True)
 
@@ -792,6 +1216,7 @@ def api_new_game():
 
     human_color = chess.WHITE if requested_color == "white" else chess.BLACK
     board = chess.Board()
+    move_history = []
 
     agent_move = make_agent_move_if_needed()
 
@@ -822,7 +1247,7 @@ def api_move():
     except ValueError as error:
         return jsonify({"error": str(error), "state": get_state()}), 400
 
-    board.push(human_move)
+    push_recorded_move(human_move, "human")
 
     try:
         agent_move = make_agent_move_if_needed()
@@ -832,6 +1257,22 @@ def api_move():
     return jsonify({
         "human_move": human_move.uci(),
         "agent_move": agent_move,
+        "state": get_state(),
+    })
+
+
+@app.route("/api/undo", methods=["POST"])
+def api_undo():
+    undone = undo_last_human_turn()
+
+    if not undone:
+        return jsonify({
+            "error": "There is no human move to undo.",
+            "state": get_state(),
+        }), 400
+
+    return jsonify({
+        "message": "Last human move was undone.",
         "state": get_state(),
     })
 
